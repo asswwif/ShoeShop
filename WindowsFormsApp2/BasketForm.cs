@@ -459,11 +459,6 @@ namespace WindowsFormsApp2
             }
         }
 
-        private void button3_Click(object sender, EventArgs e) // Кнопка "Додати нового клієнта"
-        {
-            MessageBox.Show("Функціонал додавання клієнта ще не реалізовано.", "Інформація");
-        }
-
         private void panel2_Paint(object sender, PaintEventArgs e) { }
         private void label3_Click(object sender, EventArgs e) { }
         private void backgroundWorker1_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e) { }
