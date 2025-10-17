@@ -1,13 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Text.RegularExpressions;
 
 namespace WindowsFormsApp2
 {
@@ -38,28 +30,6 @@ namespace WindowsFormsApp2
 
         private void pictureBox1_Click(object sender, EventArgs e) { }
  
-
-        private string FormatPhoneNumber(string inputPhone)
-        {
-            if (string.IsNullOrWhiteSpace(inputPhone))
-            {
-                return "";
-            }
-
-            string digitsOnly = Regex.Replace(inputPhone, @"[^\d]", "");
-
-            if (digitsOnly.Length == 10 && digitsOnly.StartsWith("0"))
-            {
-                return $"+38{digitsOnly}";
-            }
-            else if (digitsOnly.Length == 12 && digitsOnly.StartsWith("380"))
-            {
-                return $"+{digitsOnly}";
-            }
-
-            return null;
-        }
-
         private void register_btn_Click(object sender, EventArgs e)
         {
             // Збираємо дані з полів (тільки username і password)

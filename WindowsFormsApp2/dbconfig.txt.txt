@@ -1,0 +1,1 @@
+server=localhost;user=root;password=Admin24&;database=shoestore

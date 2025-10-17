@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Drawing.Printing;
@@ -164,7 +163,7 @@ namespace WindowsFormsApp2
                 long saleId = Convert.ToInt64(DbConection.msCommand.ExecuteScalar());
                 _currentSaleId = saleId; 
 
-                // 2. Вставка деталей продажу та оновлення залишків
+                // Вставка деталей продажу та оновлення залишків
                 string itemQuery = "INSERT INTO Sale_Details (sale_id, color_size_id, product_quantity, unit_price) VALUES (@saleId, @csId, @qty, @price);";
                 string stockQuery = "UPDATE Color_Size SET stock_quantity = stock_quantity - @qty WHERE color_size_id = @csId;";
 

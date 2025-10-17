@@ -1,5 +1,4 @@
 ﻿using System;
-using MySql.Data.MySqlClient;
 using System.Windows.Forms;
 
 namespace WindowsFormsApp2

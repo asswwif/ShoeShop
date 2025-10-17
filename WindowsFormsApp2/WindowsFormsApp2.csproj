@@ -127,6 +127,7 @@
     </Compile>
     <Compile Include="DbConection.cs" />
     <Compile Include="EmployeeService.cs" />
+    <Compile Include="InfoValidator.cs" />
     <Compile Include="PersonalInfoForm.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -105,7 +105,6 @@ namespace WindowsFormsApp2
                 return;
             }
 
-            // Головний цикл обробки
             bool allSuccess = true;
             foreach (DataGridViewRow row in dataGridView1.Rows)
             {

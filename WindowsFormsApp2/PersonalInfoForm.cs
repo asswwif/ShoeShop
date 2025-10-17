@@ -1,13 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Text.RegularExpressions;
 
 namespace WindowsFormsApp2
 {
@@ -30,17 +22,12 @@ namespace WindowsFormsApp2
             textBox1.Text = SessionManager.CurrentEmployeeLastName;
             textBox2.Text = SessionManager.CurrentEmployeeFirstName;
 
-            // Форматуємо номер телефону для відображення (якщо він є)
+            // Форматування номера телефону для відображення
             if (!string.IsNullOrEmpty(SessionManager.CurrentEmployeePhone))
-            {
-                textBox3.Text = FormatPhoneNumber(SessionManager.CurrentEmployeePhone);
-            }
+                textBox3.Text = InfoValidator.FormatPhoneForDisplay(SessionManager.CurrentEmployeePhone);
             else
-            {
-                textBox3.Text = ""; 
-            }
+                textBox3.Text = "";
 
-            // Якщо дані порожні, показуємо підказку користувачу
             if (string.IsNullOrEmpty(SessionManager.CurrentEmployeeFirstName) &&
                 string.IsNullOrEmpty(SessionManager.CurrentEmployeeLastName) &&
                 string.IsNullOrEmpty(SessionManager.CurrentEmployeePhone))
@@ -50,95 +37,54 @@ namespace WindowsFormsApp2
             }
         }
 
-        private string FormatPhoneNumber(string inputPhone)
-        {
-            if (string.IsNullOrWhiteSpace(inputPhone))
-            {
-                return ""; 
-            }
-
-            // Видаляємо всі нецифрові символи
-            string digitsOnly = Regex.Replace(inputPhone, @"[^\d]", "");
-
-            if (digitsOnly.Length == 10 && digitsOnly.StartsWith("0"))
-            {
-                return $"+38{digitsOnly}";
-            }
-            else if (digitsOnly.Length == 12 && digitsOnly.StartsWith("380"))
-            {
-                return $"+{digitsOnly}";
-            }
-            else
-            {
-                // Некоректний формат
-                return null;
-            }
-        }
-
         private void button2_Click(object sender, EventArgs e)
         {
-            // Збір даних з полів
             string newLastName = textBox1.Text.Trim();
             string newFirstName = textBox2.Text.Trim();
-            string rawPhone = textBox3.Text.Trim(); 
-
-            // Валідація ім'я
-            if (string.IsNullOrEmpty(newFirstName))
-            {
-                MessageBox.Show("Поле 'Ім'я' не може бути порожнім!", "Помилка валідації",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                textBox2.Focus();
-                return;
-            }
+            string rawPhone = textBox3.Text.Trim();
 
             // Валідація прізвища
-            if (string.IsNullOrEmpty(newLastName))
+            if (!InfoValidator.ValidateName(newLastName, "Прізвище", out string error))
             {
-                MessageBox.Show("Поле 'Прізвище' не може бути порожнім!", "Помилка валідації",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(error, "Помилка валідації", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 textBox1.Focus();
                 return;
             }
 
-            // Валідація номеру телефону
-            if (string.IsNullOrWhiteSpace(rawPhone))
+            // Валідація імені
+            if (!InfoValidator.ValidateName(newFirstName, "Ім'я", out error))
             {
-                MessageBox.Show("Поле 'Номер телефону' не може бути порожнім!", "Помилка валідації",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(error, "Помилка валідації", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                textBox2.Focus();
+                return;
+            }
+
+            // Валідація номера телефону
+            if (!InfoValidator.ValidatePhone(rawPhone, out string normalizedPhone, out error))
+            {
+                MessageBox.Show(error, "Помилка валідації", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 textBox3.Focus();
                 return;
             }
 
-            // Форматування та валідація формату номера
-            string newPhone = FormatPhoneNumber(rawPhone);
-
-            if (newPhone == null)
-            {
-                MessageBox.Show("Введіть коректний номер телефону!\n\nПриклади:\n• 0501234567\n• +380501234567\n• 380501234567",
-                    "Помилка валідації", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                textBox3.Focus();
-                return;
-            }
-
-            // Викликаємо сервіс для оновлення БД
+            // Оновлення у базі
             bool success = _employeeService.UpdatePersonalInfo(
                 SessionManager.CurrentEmployeeId,
                 newFirstName,
                 newLastName,
-                newPhone // Передаємо відформатований номер
+                normalizedPhone
             );
 
             if (success)
             {
                 MessageBox.Show("Ваші дані успішно оновлено!", "Успіх",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
-                // Оновлюємо відображення на формі після успішного збереження
                 LoadEmployeeData();
             }
             else
             {
-                MessageBox.Show("Не вдалося оновити дані. Зверніться до адміністратора.", "Помилка оновлення",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Не вдалося оновити дані. Зверніться до адміністратора.",
+                    "Помилка оновлення", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

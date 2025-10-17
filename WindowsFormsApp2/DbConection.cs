@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Windows.Forms;
 using MySql.Data.MySqlClient;
 
@@ -6,31 +7,50 @@ namespace WindowsFormsApp2
 {
     internal class DbConection
     {
-        // Приватне поле для рядка підключення
-        private static string DbConnect = "server = localhost; user = root; password = Admin24&; database = shoestore";
+        private static string DbConnect = GetConnectionString();
 
         public static MySqlConnection msConnection;
-
         public static MySqlCommand msCommand;
-
         public static MySqlDataAdapter msDataAdapter;
 
+        private static string GetConnectionString()
+        {
+            try
+            {
+                // пошук dbconfig.txt в папці програми
+                string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dbconfig.txt");
+
+                if (File.Exists(configFile))
+                {
+                    return File.ReadAllText(configFile).Trim();
+                }
+                else
+                {
+                    MessageBox.Show("Файл dbconfig.txt не знайдено! Створіть його з рядком підключення.",
+                        "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return "";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка читання конфігурації: {ex.Message}",
+                    "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return "";
+            }
+        }
 
         public static bool ConnectionDB()
         {
             try
             {
-                // Ініціалізуємо msConnection 
+                // ініціалізація msConnection 
                 msConnection = new MySqlConnection(DbConnect);
                 msConnection.Open();
-
-                // Ініціалізуємо msCommand і прив'язуємо до з'єднання
+                // ініціалізація msCommand і прив'язка до з'єднання
                 msCommand = new MySqlCommand();
                 msCommand.Connection = msConnection;
-
-                // Ініціалізуємо адаптер 
+                // ініціалізація адаптера 
                 msDataAdapter = new MySqlDataAdapter(msCommand);
-
                 return true;
             }
             catch (Exception ex)
@@ -42,15 +62,10 @@ namespace WindowsFormsApp2
 
         public static void CloseDB()
         {
-            // Перевіряємо на null, щоб уникнути помилок, якщо з'єднання не відкрилося
             if (msConnection != null && msConnection.State == System.Data.ConnectionState.Open)
             {
                 msConnection.Close();
             }
         }
-        //public MySqlConnection getConnection()
-        //{
-        //    return msConnection;
-        //}
     }
 }

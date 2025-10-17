@@ -1,8 +1,6 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
@@ -19,7 +17,6 @@ namespace WindowsFormsApp2
         {
             InitializeComponent();
 
-            // Ініціалізуємо вибраного клієнта як гостя
             _selectedCustomer = new Customer
             {
                 CustomerId = 0,
@@ -29,7 +26,6 @@ namespace WindowsFormsApp2
                 PhoneNumber = ""
             };
 
-            // Прив'язка обробників подій для DataGridView
             if (dataGridView1 != null)
             {
                 dataGridView1.CellValueChanged += dataGridView1_CellValueChanged;
@@ -46,7 +42,6 @@ namespace WindowsFormsApp2
             {
                 _allCustomers = _customerService.GetAllCustomersWithDiscounts();
 
-                // Додаємо варіант "Гість"
                 _allCustomers.Insert(0, new Customer
                 {
                     CustomerId = 0,
@@ -58,23 +53,18 @@ namespace WindowsFormsApp2
 
                 if (comboBox1 != null)
                 {
-                    // Відключаємо обробник подій
                     comboBox1.SelectedIndexChanged -= comboBox1_SelectedIndexChanged;
                     comboBox1.TextChanged -= comboBox1_TextChanged;
 
-                    // Налаштовуємо ComboBox
                     comboBox1.DataSource = _allCustomers;
                     comboBox1.DisplayMember = "DisplayText"; 
                     comboBox1.ValueMember = "CustomerId";
 
-                    // Налаштування для пошуку
-                    comboBox1.AutoCompleteMode = AutoCompleteMode.None; // Відключаємо стандартне автозавершення
-                    comboBox1.DropDownStyle = ComboBoxStyle.DropDown; // Дозволяємо ввід тексту
+                    comboBox1.AutoCompleteMode = AutoCompleteMode.None; 
+                    comboBox1.DropDownStyle = ComboBoxStyle.DropDown; 
 
-                    // Встановлюємо "Гість" як вибраний за замовчуванням
                     comboBox1.SelectedIndex = 0;
 
-                    // Підключаємо обробники подій
                     comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
                     comboBox1.TextChanged += comboBox1_TextChanged;
                 }
@@ -310,7 +300,6 @@ namespace WindowsFormsApp2
             if (e.RowIndex >= 0 && dataGridView1.Columns.Contains("Quantity") &&
                 dataGridView1.Columns[e.ColumnIndex].Name == "Quantity")
             {
-                // Тимчасово відключаємо обробник для уникнення рекурсії
                 dataGridView1.CellValueChanged -= dataGridView1_CellValueChanged;
 
                 try
@@ -351,7 +340,6 @@ namespace WindowsFormsApp2
                 }
                 finally
                 {
-                    // Обов'язково вмикаємо обробник назад
                     dataGridView1.CellValueChanged += dataGridView1_CellValueChanged;
                 }
             }

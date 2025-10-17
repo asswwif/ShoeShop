@@ -1,8 +1,7 @@
-﻿using System;
+﻿using MySql.Data.MySqlClient;
+using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Windows.Forms;
-using MySql.Data.MySqlClient;
 
 namespace WindowsFormsApp2
 {
@@ -23,7 +22,7 @@ namespace WindowsFormsApp2
         {
             get
             {
-                if (CustomerId == 0) // Гість
+                if (CustomerId == 0)
                 {
                     return "Гість";
                 }
@@ -32,7 +31,8 @@ namespace WindowsFormsApp2
 
                 if (!string.IsNullOrEmpty(PhoneNumber))
                 {
-                    return $"{fullName} - {PhoneNumber}";
+                    string formattedPhone = InfoValidator.FormatPhoneForDisplay(PhoneNumber);
+                    return $"{fullName} - {formattedPhone}";
                 }
 
                 return fullName;
@@ -44,14 +44,12 @@ namespace WindowsFormsApp2
             return DisplayText;
         }
 
-        // Метод для пошуку - повертає всі можливі варіанти для пошуку
         public string GetSearchableText()
         {
             return $"{FirstName} {LastName} {PhoneNumber}".ToLower();
         }
     }
 
-    // Клас для роботи з дисконтними картками 
     public class DiscountCard
     {
         public int DiscountCardId { get; set; }
@@ -74,15 +72,15 @@ namespace WindowsFormsApp2
                 }
 
                 string query = @"SELECT 
-                                        c.customer_id,
-                                        c.first_name,
-                                        c.last_name,
-                                        c.phone_number,
-                                        c.birth_date,
-                                        COALESCE(dc.discount_percent, 0) as discount_percent
-                                     FROM customer c
-                                     LEFT JOIN discount_card dc ON c.customer_id = dc.customer_id
-                                     ORDER BY c.first_name, c.last_name";
+                                            c.customer_id,
+                                            c.first_name,
+                                            c.last_name,
+                                            c.phone_number,
+                                            c.birth_date,
+                                            COALESCE(dc.discount_percent, 0) as discount_percent
+                                           FROM customer c
+                                           LEFT JOIN discount_card dc ON c.customer_id = dc.customer_id
+                                           ORDER BY c.first_name, c.last_name";
 
                 DbConection.msCommand.CommandText = query;
                 DbConection.msCommand.Parameters.Clear();
@@ -93,7 +91,6 @@ namespace WindowsFormsApp2
                     {
                         DateTime birthDate = DateTime.MinValue;
 
-                        // Перевіряємо чи дата не NULL і намагаємося її прочитати
                         object birthDateValue = reader["birth_date"];
                         if (birthDateValue != null && birthDateValue != DBNull.Value)
                         {
@@ -135,15 +132,15 @@ namespace WindowsFormsApp2
                 if (DbConection.ConnectionDB())
                 {
                     string query = @"SELECT 
-                                         c.customer_id,
-                                         c.first_name,
-                                         c.last_name,
-                                         c.phone_number,
-                                         c.birth_date,
-                                         COALESCE(bc.discount_percent, 0) as discount_percent
-                                       FROM customer c
-                                       LEFT JOIN discount_card bc ON c.customer_id = bc.customer_id
-                                       WHERE c.customer_id = @customerId";
+                                            c.customer_id,
+                                            c.first_name,
+                                            c.last_name,
+                                            c.phone_number,
+                                            c.birth_date,
+                                            COALESCE(bc.discount_percent, 0) as discount_percent
+                                             FROM customer c
+                                             LEFT JOIN discount_card bc ON c.customer_id = bc.customer_id
+                                             WHERE c.customer_id = @customerId";
 
                     DbConection.msCommand.CommandText = query;
                     DbConection.msCommand.Parameters.Clear();
@@ -155,7 +152,6 @@ namespace WindowsFormsApp2
                         {
                             DateTime birthDate = DateTime.MinValue;
 
-                            // Перевіряємо чи дата не NULL і намагаємося її прочитати
                             object birthDateValue = reader["birth_date"];
                             if (birthDateValue != null && birthDateValue != DBNull.Value)
                             {
@@ -191,11 +187,33 @@ namespace WindowsFormsApp2
         {
             try
             {
+                if (!InfoValidator.ValidateName(customer.FirstName, "Ім'я", out string firstNameError))
+                {
+                    MessageBox.Show($"Помилка в імені: {firstNameError}", "Помилка валідації",
+                                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return false;
+                }
+
+                if (!InfoValidator.ValidateName(customer.LastName, "Прізвище", out string lastNameError))
+                {
+                    MessageBox.Show($"Помилка в прізвищі: {lastNameError}", "Помилка валідації",
+                                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return false;
+                }
+
+                if (!InfoValidator.ValidatePhone(customer.PhoneNumber, out string normalizedPhone, out string phoneError))
+                {
+                    MessageBox.Show($"Помилка в номері телефону: {phoneError}", "Помилка валідації",
+                                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return false;
+                }
+
+                customer.PhoneNumber = normalizedPhone;
+
                 if (DbConection.ConnectionDB())
                 {
                     string query;
 
-                    // Якщо дата не задана, вставляємо NULL
                     if (customer.BirthDate == DateTime.MinValue || customer.BirthDate.Year <= 1900)
                     {
                         query = @"INSERT INTO customer (first_name, last_name, phone_number, birth_date) 
@@ -238,11 +256,34 @@ namespace WindowsFormsApp2
         {
             try
             {
+                if (!InfoValidator.ValidateName(customer.FirstName, "Ім'я", out string firstNameError))
+                {
+                    MessageBox.Show($"Помилка в імені: {firstNameError}", "Помилка валідації",
+                                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return false;
+                }
+
+                if (!InfoValidator.ValidateName(customer.LastName, "Прізвище", out string lastNameError))
+                {
+                    MessageBox.Show($"Помилка в прізвищі: {lastNameError}", "Помилка валідації",
+                                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return false;
+                }
+
+                if (!InfoValidator.ValidatePhone(customer.PhoneNumber, out string normalizedPhone, out string phoneError))
+                {
+                    MessageBox.Show($"Помилка в номері телефону: {phoneError}", "Помилка валідації",
+                                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return false;
+                }
+
+                customer.PhoneNumber = normalizedPhone;
+
+
                 if (DbConection.ConnectionDB())
                 {
                     string query;
 
-                    // Якщо дата не задана, оновлюємо на NULL
                     if (customer.BirthDate == DateTime.MinValue || customer.BirthDate.Year <= 1900)
                     {
                         query = @"UPDATE customer 
@@ -319,7 +360,6 @@ namespace WindowsFormsApp2
         }
     }
 
-    // клас для роботи з дисконтними картками 
     public class DiscountCardService
     {
         public bool AddDiscountCard(int customerId, int discountPercent)

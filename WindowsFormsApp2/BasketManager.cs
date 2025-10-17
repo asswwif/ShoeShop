@@ -15,7 +15,7 @@ namespace WindowsFormsApp2
         public decimal TotalPrice => Price * Quantity;
     }
 
-    // Статичний клас для управління глобальним станом кошика.
+    // клас для управління глобальним станом кошика
     public static class BasketManager
     {
         private static List<BasketItem> items = new List<BasketItem>();
