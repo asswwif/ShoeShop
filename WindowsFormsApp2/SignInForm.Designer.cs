@@ -62,7 +62,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Font = new System.Drawing.Font("Arial Rounded MT Bold", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label6.Font = new System.Drawing.Font("Arial Rounded MT Bold", 14.25F);
             this.label6.ForeColor = System.Drawing.Color.White;
             this.label6.Location = new System.Drawing.Point(206, 490);
             this.label6.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
@@ -85,7 +85,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Font = new System.Drawing.Font("Arial", 13.875F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.label5.Font = new System.Drawing.Font("Arial", 13.875F, System.Drawing.FontStyle.Bold);
             this.label5.ForeColor = System.Drawing.Color.White;
             this.label5.Location = new System.Drawing.Point(146, 773);
             this.label5.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
@@ -98,7 +98,7 @@
             // 
             this.login_registerBtn.BackColor = System.Drawing.Color.LightPink;
             this.login_registerBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.login_registerBtn.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.login_registerBtn.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.login_registerBtn.ForeColor = System.Drawing.Color.White;
             this.login_registerBtn.Location = new System.Drawing.Point(24, 840);
             this.login_registerBtn.Margin = new System.Windows.Forms.Padding(6);
@@ -113,7 +113,7 @@
             // 
             this.close.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.close.AutoSize = true;
-            this.close.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.close.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold);
             this.close.Location = new System.Drawing.Point(1312, 15);
             this.close.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.close.Name = "close";
@@ -125,7 +125,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Font = new System.Drawing.Font("Arial", 13.875F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.label2.Font = new System.Drawing.Font("Arial", 13.875F, System.Drawing.FontStyle.Bold);
             this.label2.Location = new System.Drawing.Point(684, 140);
             this.label2.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label2.Name = "label2";
@@ -137,7 +137,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.label3.Font = new System.Drawing.Font("Arial", 12F);
             this.label3.Location = new System.Drawing.Point(680, 260);
             this.label3.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label3.Name = "label3";
@@ -149,7 +149,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label4.Font = new System.Drawing.Font("Arial", 12F);
             this.label4.Location = new System.Drawing.Point(684, 402);
             this.label4.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label4.Name = "label4";
@@ -160,7 +160,7 @@
             // 
             // login_username
             // 
-            this.login_username.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.login_username.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
             this.login_username.Location = new System.Drawing.Point(676, 315);
             this.login_username.Margin = new System.Windows.Forms.Padding(6);
             this.login_username.Name = "login_username";
@@ -170,7 +170,7 @@
             // 
             // login_password
             // 
-            this.login_password.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.login_password.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
             this.login_password.Location = new System.Drawing.Point(676, 458);
             this.login_password.Margin = new System.Windows.Forms.Padding(6);
             this.login_password.Name = "login_password";
@@ -181,7 +181,7 @@
             // login_showPass
             // 
             this.login_showPass.AutoSize = true;
-            this.login_showPass.Font = new System.Drawing.Font("Arial", 7.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.login_showPass.Font = new System.Drawing.Font("Arial", 7.875F);
             this.login_showPass.Location = new System.Drawing.Point(684, 531);
             this.login_showPass.Margin = new System.Windows.Forms.Padding(6);
             this.login_showPass.Name = "login_showPass";
@@ -195,7 +195,7 @@
             // 
             this.login_btn.BackColor = System.Drawing.Color.LightPink;
             this.login_btn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.login_btn.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.login_btn.Font = new System.Drawing.Font("Arial Narrow", 10.125F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.login_btn.ForeColor = System.Drawing.Color.White;
             this.login_btn.Location = new System.Drawing.Point(686, 656);
             this.login_btn.Margin = new System.Windows.Forms.Padding(6);

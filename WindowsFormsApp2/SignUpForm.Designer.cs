@@ -51,7 +51,7 @@
             // 
             this.register_btn.BackColor = System.Drawing.Color.LightPink;
             this.register_btn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.register_btn.Font = new System.Drawing.Font("Arial Rounded MT Bold", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.register_btn.Font = new System.Drawing.Font("Arial Narrow", 10.125F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.register_btn.ForeColor = System.Drawing.Color.White;
             this.register_btn.Location = new System.Drawing.Point(694, 738);
             this.register_btn.Margin = new System.Windows.Forms.Padding(6);
@@ -194,7 +194,7 @@
             // 
             this.register_loginBtn.BackColor = System.Drawing.Color.LightPink;
             this.register_loginBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.register_loginBtn.Font = new System.Drawing.Font("Arial Narrow", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.register_loginBtn.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.register_loginBtn.ForeColor = System.Drawing.Color.White;
             this.register_loginBtn.Location = new System.Drawing.Point(24, 840);
             this.register_loginBtn.Margin = new System.Windows.Forms.Padding(6);
