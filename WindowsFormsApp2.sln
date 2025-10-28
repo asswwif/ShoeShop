@@ -10,6 +10,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Элементы решен
 		WindowsFormsApp2\bin\Debug\dbconfig.txt = WindowsFormsApp2\bin\Debug\dbconfig.txt
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Документація", "Документація", "{36D591C7-65C7-A0D1-1CBC-10CDE441BDC8}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\..\OneDrive\Рабочий стол\Документація\2 ТЕОРЕТИЧНИЙ РОЗДІЛ.docx = ..\..\..\OneDrive\Рабочий стол\Документація\2 ТЕОРЕТИЧНИЙ РОЗДІЛ.docx
+		..\..\..\OneDrive\Рабочий стол\Документація\Вступ.docx = ..\..\..\OneDrive\Рабочий стол\Документація\Вступ.docx
+		..\..\..\OneDrive\Рабочий стол\Документація\Завдання на КП.docx = ..\..\..\OneDrive\Рабочий стол\Документація\Завдання на КП.docx
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
