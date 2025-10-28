@@ -1,1 +1,1 @@
-server=localhost;user=root;password=Admin24&;database=shoestore
+server=localhost;user=root;password=YOUR_PASSWORD;database=shoestore
