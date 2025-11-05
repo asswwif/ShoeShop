@@ -369,3 +369,4 @@ App.config
 
 # Database configuration with password
 dbconfig.txt
+/WindowsFormsApp2/DbConection.cs
