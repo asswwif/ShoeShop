@@ -60,7 +60,6 @@ namespace WindowsFormsApp2
             return dt;
         }
 
-        // Фільтрація повернень за датами
         public DataTable GetReturnsDataByDateRange(DateTime startDate, DateTime endDate)
         {
             DataTable dataTable = new DataTable();
@@ -74,30 +73,29 @@ namespace WindowsFormsApp2
                 }
 
                 string query = @"
-            SELECT
-                R.return_id AS 'ID',
-                R.return_date AS 'Дата повернення',
-                P.product_name AS 'Товар',
-                C.color_name AS 'Колір',
-                S.size_value AS 'Розмір',
-                R.product_quantity AS 'Кількість',
-                R.reason AS 'Причина',
-                CONCAT(E.first_name, ' ', E.last_name) AS 'Працівник'
-            FROM
-                `Return` R
-            JOIN Employee E ON R.employee_id = E.employee_id
-            JOIN Sale_Details SD ON R.sale_detail_id = SD.sale_detail_id
-            JOIN Color_Size CS ON SD.color_size_id = CS.color_size_id
-            JOIN Product P ON CS.product_id = P.product_id
-            JOIN Color C ON CS.color_id = C.color_id
-            JOIN Size S ON CS.size_id = S.size_id
-            WHERE 
-                R.return_date >= @startDate AND R.return_date < @endDate
-            ORDER BY R.return_date DESC;";
+                    SELECT
+                        R.return_id AS 'ID',
+                        R.return_date AS 'Дата повернення',
+                        P.product_name AS 'Товар',
+                        C.color_name AS 'Колір',
+                        S.size_value AS 'Розмір',
+                        R.product_quantity AS 'Кількість',
+                        R.reason AS 'Причина',
+                        CONCAT(E.first_name, ' ', E.last_name) AS 'Працівник'
+                    FROM
+                        `Return` R
+                    JOIN Employee E ON R.employee_id = E.employee_id
+                    JOIN Sale_Details SD ON R.sale_detail_id = SD.sale_detail_id
+                    JOIN Color_Size CS ON SD.color_size_id = CS.color_size_id
+                    JOIN Product P ON CS.product_id = P.product_id
+                    JOIN Color C ON CS.color_id = C.color_id
+                    JOIN Size S ON CS.size_id = S.size_id
+                    WHERE 
+                        R.return_date >= @startDate AND R.return_date < @endDate
+                    ORDER BY R.return_date DESC;";
 
                 DbConection.msCommand.CommandText = query;
                 DbConection.msCommand.Parameters.Clear();
-
                 DbConection.msCommand.Parameters.AddWithValue("@startDate", startDate);
                 DbConection.msCommand.Parameters.AddWithValue("@endDate", endDate);
 
@@ -118,7 +116,62 @@ namespace WindowsFormsApp2
             return dataTable;
         }
 
-        // Отримання деталей продажу для повернення
+        public DataTable GetReturnsDataForExport(DateTime startDate, DateTime endDate)
+        {
+            DataTable dt = new DataTable();
+
+            try
+            {
+                if (!DbConection.ConnectionDB())
+                {
+                    MessageBox.Show("Не вдалося підключитися до бази даних.", "Помилка БД");
+                    return dt;
+                }
+
+                string query = @"
+                    SELECT
+                        R.return_id,
+                        R.return_date as return_datetime,
+                        P.product_name,
+                        C.color_name,
+                        S.size_value,
+                        R.product_quantity as quantity,
+                        SD.unit_price,
+                        (SD.unit_price * R.product_quantity) as refund_amount,
+                        R.reason
+                    FROM
+                        `Return` R
+                    JOIN Sale_Details SD ON R.sale_detail_id = SD.sale_detail_id
+                    JOIN Color_Size CS ON SD.color_size_id = CS.color_size_id
+                    JOIN Product P ON CS.product_id = P.product_id
+                    JOIN Color C ON CS.color_id = C.color_id
+                    JOIN Size S ON CS.size_id = S.size_id
+                    WHERE 
+                        R.return_date >= @startDate AND R.return_date < @endDate
+                    ORDER BY R.return_date DESC;";
+
+                DbConection.msCommand.CommandText = query;
+                DbConection.msCommand.Parameters.Clear();
+                DbConection.msCommand.Parameters.AddWithValue("@startDate", startDate);
+                DbConection.msCommand.Parameters.AddWithValue("@endDate", endDate);
+
+                using (MySqlDataAdapter adapter = new MySqlDataAdapter(DbConection.msCommand))
+                {
+                    adapter.Fill(dt);
+                }
+
+                DbConection.CloseDB();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при отриманні даних для експорту: {ex.Message}", "Помилка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                DbConection.CloseDB();
+            }
+
+            return dt;
+        }
+
         public DataTable GetSaleDetailsForReturn(int saleId)
         {
             DataTable dt = new DataTable();
@@ -165,7 +218,6 @@ namespace WindowsFormsApp2
             return dt;
         }
 
-        // Додавання повернення
         public bool AddReturn(int saleId, int productId, int quantity, decimal refundAmount, string reason)
         {
             try
@@ -211,7 +263,6 @@ namespace WindowsFormsApp2
                 transaction = DbConection.msConnection.BeginTransaction();
                 DbConection.msCommand.Transaction = transaction;
 
-                // Додаємо запис у таблицю Return
                 string insertQuery = @"
                     INSERT INTO `Return` (sale_detail_id, employee_id, return_date, product_quantity, reason)
                     VALUES (@saleDetailId, @employeeId, NOW(), @quantity, @reason);";
@@ -224,7 +275,6 @@ namespace WindowsFormsApp2
                 DbConection.msCommand.Parameters.AddWithValue("@reason", reason);
                 DbConection.msCommand.ExecuteNonQuery();
 
-                // Оновлюємо залишок на складі
                 string updateStockQuery = @"
                     UPDATE Color_Size
                     SET stock_quantity = stock_quantity + @quantity

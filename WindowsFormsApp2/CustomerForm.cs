@@ -1,12 +1,6 @@
-﻿using MySqlX.XDevAPI.Common;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
+﻿using System;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace WindowsFormsApp2
@@ -16,6 +10,47 @@ namespace WindowsFormsApp2
         public CustomerForm()
         {
             InitializeComponent();
+            UpdateBasketButton();
+            this.MinimumSize = new Size(900, 500);
+            this.MaximumSize = new Size(1800, 960);
+        }
+
+        private void UpdateBasketButton()
+        {
+            try
+            {
+                int itemCount = BasketManager.GetItems().Count;
+                if (itemCount > 0)
+                {
+                    // Кошик не порожній, то підсвічуємо
+                    button5.BackColor = Color.Maroon;
+                    button5.Text = $"Кошик ({itemCount})";
+                    button5.Font = new Font("Arial", 12, FontStyle.Bold);
+                    button5.ForeColor = Color.White;
+                }
+                else
+                {
+                    // Кошик порожній - стандартний вигляд
+                    button5.BackColor = Color.LightPink;
+                    button5.Text = "Кошик";
+                    button5.Font = new Font("Arial", 12, FontStyle.Bold);
+                    button5.ForeColor = Color.White;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Якщо помилка, то просто ігноруємо
+                Console.WriteLine($"Помилка оновлення кошика: {ex.Message}");
+            }
+        }
+
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+            if (this.Visible)
+            {
+                UpdateBasketButton();
+            }
         }
 
         private void close_Click(object sender, EventArgs e)
@@ -33,7 +68,6 @@ namespace WindowsFormsApp2
 
             if (result == DialogResult.Yes)
             {
-                // Очищаємо сесію перед виходом
                 SessionManager.ClearSession();
                 SignInForm signInForm = new SignInForm();
                 signInForm.Show();
@@ -43,9 +77,18 @@ namespace WindowsFormsApp2
 
         private void button1_Click(object sender, EventArgs e)
         {
-            SellerMainForm mainForm = new SellerMainForm();
-            mainForm.Show();
-            this.Hide();
+            SellerMainForm mainForm = Application.OpenForms.OfType<SellerMainForm>().FirstOrDefault();
+            if (mainForm != null)
+            {
+                mainForm.UpdateBasketButton();
+                mainForm.Show();
+            }
+            else
+            {
+                mainForm = new SellerMainForm();
+                mainForm.Show();
+            }
+            this.Close();
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -77,7 +120,10 @@ namespace WindowsFormsApp2
         }
 
         private void sales1_Load_1(object sender, EventArgs e) { }
-
         private void panel1_Paint(object sender, PaintEventArgs e) { }
+
+        private void customerSelector1_Load(object sender, EventArgs e) { }
+ 
     }
 }
+

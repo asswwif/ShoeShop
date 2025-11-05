@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
@@ -10,13 +11,87 @@ namespace WindowsFormsApp2
     public partial class BasketForm : Form
     {
         private Customer _selectedCustomer;
-        private CustomerService _customerService = new CustomerService();
-        private List<Customer> _allCustomers; // Зберігаємо всіх клієнтів для пошуку
+        private bool _isDeleting = false;
 
         public BasketForm()
         {
             InitializeComponent();
+            InitializeCustomer();
+            SetupPhoneTextBox();
+            SetupDataGridView();
+            SetupButton3();
+            LoadBasketItems();
+            UpdateCustomerLabel();
+            this.MinimumSize = new Size(900, 500);
+            this.MaximumSize = new Size(1800, 960);
 
+            BasketManager.BasketChanged += OnBasketChanged;
+        }
+
+        private void InitializeCustomer()
+        {
+            _selectedCustomer = new Customer
+            {
+                CustomerId = 0,
+                FirstName = "Гість",
+                LastName = "",
+                DiscountPercent = 0,
+                PhoneNumber = ""
+            };
+        }
+
+        private void SetupPhoneTextBox()
+        {
+            if (textBox1 != null)
+            {
+                textBox1.BackColor = Color.White;
+                textBox1.KeyPress += textBox1_KeyPress;
+            }
+        }
+
+        private void SetupButton3()
+        {
+            Button searchButton = this.Controls.Find("button3", true).FirstOrDefault() as Button;
+            if (searchButton != null)
+            {
+                searchButton.Visible = true;
+                searchButton.Text = "+";
+            }
+        }
+
+        private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (!char.IsDigit(e.KeyChar) && e.KeyChar != (char)Keys.Back && e.KeyChar != '+')
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void UpdateCustomerLabel()
+        {
+            Label customerLabel = this.Controls.Find("label5", true).FirstOrDefault() as Label;
+            if (customerLabel != null)
+            {
+                if (_selectedCustomer.CustomerId == 0)
+                {
+                    customerLabel.Text = "Клієнт: Гість";
+                    customerLabel.ForeColor = Color.Black;
+                }
+                else
+                {
+                    string customerInfo = $"Клієнт: {_selectedCustomer.FirstName} {_selectedCustomer.LastName}";
+                    if (_selectedCustomer.DiscountPercent > 0)
+                    {
+                        customerInfo += $" (Знижка: {_selectedCustomer.DiscountPercent}%)";
+                    }
+                    customerLabel.Text = customerInfo;
+                    customerLabel.ForeColor = Color.DarkGreen;
+                }
+            }
+        }
+
+        private void SetGuestCustomer()
+        {
             _selectedCustomer = new Customer
             {
                 CustomerId = 0,
@@ -26,147 +101,191 @@ namespace WindowsFormsApp2
                 PhoneNumber = ""
             };
 
+            LoadBasketItems();
+            UpdateCustomerLabel();
+        }
+
+        private Customer FindCustomerByPhone(string normalizedPhone)
+        {
+            Customer customer = null;
+
+            try
+            {
+                if (DbConection.ConnectionDB())
+                {
+                    string query = @"SELECT 
+                                        c.customer_id,
+                                        c.first_name,
+                                        c.last_name,
+                                        c.phone_number,
+                                        c.birth_date,
+                                        COALESCE(dc.discount_percent, 0) as discount_percent
+                                    FROM customer c
+                                    LEFT JOIN discount_card dc ON c.customer_id = dc.customer_id
+                                    WHERE REPLACE(REPLACE(REPLACE(c.phone_number, ' ', ''), '-', ''), '+', '') LIKE @phone
+                                    LIMIT 1";
+
+                    DbConection.msCommand.CommandText = query;
+                    DbConection.msCommand.Parameters.Clear();
+                    DbConection.msCommand.Parameters.AddWithValue("@phone", $"%{normalizedPhone}%");
+
+                    using (var reader = DbConection.msCommand.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            DateTime birthDate = DateTime.MinValue;
+                            object birthDateValue = reader["birth_date"];
+                            if (birthDateValue != null && birthDateValue != DBNull.Value)
+                            {
+                                birthDate = Convert.ToDateTime(birthDateValue);
+                            }
+
+                            customer = new Customer
+                            {
+                                CustomerId = reader.GetInt32("customer_id"),
+                                FirstName = reader["first_name"]?.ToString() ?? "",
+                                LastName = reader["last_name"]?.ToString() ?? "",
+                                PhoneNumber = reader["phone_number"]?.ToString() ?? "",
+                                BirthDate = birthDate,
+                                DiscountPercent = reader.GetInt32("discount_percent")
+                            };
+                        }
+                    }
+
+                    DbConection.CloseDB();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка пошуку в БД: {ex.Message}", "Помилка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                DbConection.CloseDB();
+            }
+
+            return customer;
+        }
+
+        private void buttonHistory_Click_1(object sender, EventArgs e)
+        {
+            
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            ValidateAndApplyCustomerDiscount();
+        }
+
+        private void ValidateAndApplyCustomerDiscount()
+        {
+            try
+            {
+                string phoneInput = textBox1.Text.Trim();
+
+                if (string.IsNullOrWhiteSpace(phoneInput))
+                {
+                    MessageBox.Show("Будь ласка, введіть номер телефону.", "Увага",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    textBox1.Focus();
+                    return;
+                }
+
+                if (!InfoValidator.ValidatePhone(phoneInput, out string normalizedPhone, out string errorMessage))
+                {
+                    MessageBox.Show(errorMessage, "Помилка валідації",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    textBox1.BackColor = Color.LightCoral;
+                    textBox1.Focus();
+                    return;
+                }
+
+                // Пошук клієнта за номером телефону
+                string digitsOnly = new string(phoneInput.Where(char.IsDigit).ToArray());
+                Customer foundCustomer = FindCustomerByPhone(digitsOnly);
+
+                if (foundCustomer != null)
+                {
+                    // Клієнта знайдено - застосовуємо знижку
+                    _selectedCustomer = foundCustomer;
+                    textBox1.BackColor = Color.LightGreen;
+                    LoadBasketItems(); // Оновлюємо кошик з новою знижкою
+                    UpdateCustomerLabel(); 
+
+                    string message = $"Клієнта знайдено!\n\n{foundCustomer.FirstName} {foundCustomer.LastName}\n" +
+                                   $"Телефон: {InfoValidator.FormatPhoneForDisplay(foundCustomer.PhoneNumber)}";
+
+                    if (foundCustomer.DiscountPercent > 0)
+                    {
+                        message += $"\n\n✓ Знижка {foundCustomer.DiscountPercent}% застосована до продажу!";
+                    }
+                    else
+                    {
+                        message += "\n\nЗнижка відсутня.";
+                    }
+
+                    MessageBox.Show(message, "Успіх", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    textBox1.BackColor = Color.LightCoral;
+
+                    MessageBox.Show("Клієнта з таким номером телефону не знайдено.\n\nПродовження як гість.",
+                        "Клієнт не знайдений",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+
+                    SetGuestCustomer();
+                    textBox1.BackColor = Color.White;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка перевірки клієнта: {ex.Message}", "Помилка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                SetGuestCustomer();
+            }
+        }
+
+        private void SetupDataGridView()
+        {
             if (dataGridView1 != null)
             {
                 dataGridView1.CellValueChanged += dataGridView1_CellValueChanged;
                 dataGridView1.CellContentClick += dataGridView1_CellContentClick;
+                dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+                dataGridView1.MultiSelect = false;
             }
-
-            LoadClientsToComboBox();
-            LoadBasketItems();
         }
 
-        private void LoadClientsToComboBox()
+        private void OnBasketChanged(object sender, EventArgs e)
         {
-            try
+            if (!_isDeleting)
             {
-                _allCustomers = _customerService.GetAllCustomersWithDiscounts();
-
-                _allCustomers.Insert(0, new Customer
-                {
-                    CustomerId = 0,
-                    FirstName = "Гість",
-                    LastName = "",
-                    DiscountPercent = 0,
-                    PhoneNumber = ""
-                });
-
-                if (comboBox1 != null)
-                {
-                    comboBox1.SelectedIndexChanged -= comboBox1_SelectedIndexChanged;
-                    comboBox1.TextChanged -= comboBox1_TextChanged;
-
-                    comboBox1.DataSource = _allCustomers;
-                    comboBox1.DisplayMember = "DisplayText"; 
-                    comboBox1.ValueMember = "CustomerId";
-
-                    comboBox1.AutoCompleteMode = AutoCompleteMode.None; 
-                    comboBox1.DropDownStyle = ComboBoxStyle.DropDown; 
-
-                    comboBox1.SelectedIndex = 0;
-
-                    comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
-                    comboBox1.TextChanged += comboBox1_TextChanged;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Помилка завантаження клієнтів: {ex.Message}", "Помилка",
-                                 MessageBoxButtons.OK, MessageBoxIcon.Error);
+                LoadBasketItems();
             }
         }
-
-        private void comboBox1_TextChanged(object sender, EventArgs e)
-        {
-            try
-            {
-                if (comboBox1 == null || _allCustomers == null) return;
-
-                string searchText = comboBox1.Text.ToLower();
-
-                if (string.IsNullOrWhiteSpace(searchText))
-                {
-                    UpdateComboBoxData(_allCustomers);
-                    return;
-                }
-
-                // Фільтруємо клієнтів за номером телефону, ім'ям або прізвищем
-                var filteredCustomers = _allCustomers.Where(c =>
-                    c.PhoneNumber.Contains(searchText) ||
-                    c.FirstName.ToLower().Contains(searchText) ||
-                    c.LastName.ToLower().Contains(searchText) ||
-                    c.DisplayText.ToLower().Contains(searchText)
-                ).ToList();
-
-                UpdateComboBoxData(filteredCustomers);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Помилка пошуку: {ex.Message}", "Помилка");
-            }
-        }
-
-        private void UpdateComboBoxData(List<Customer> customers)
-        {
-            comboBox1.SelectedIndexChanged -= comboBox1_SelectedIndexChanged;
-            comboBox1.TextChanged -= comboBox1_TextChanged; 
-
-            string currentText = comboBox1.Text;
-
-            comboBox1.DataSource = null;
-            comboBox1.DataSource = customers;
-            comboBox1.DisplayMember = "DisplayText";
-            comboBox1.ValueMember = "CustomerId";
-
-            comboBox1.Text = currentText;
-
-            // Показуємо список (якщо є результати)
-            if (customers.Any() && !string.IsNullOrWhiteSpace(currentText))
-            {
-                comboBox1.SelectionStart = currentText.Length;
-                comboBox1.DroppedDown = true;
-            }
-            else
-            {
-                comboBox1.DroppedDown = false;
-            }
-
-            comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
-            comboBox1.TextChanged += comboBox1_TextChanged; 
-        }
-
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            try
-            {
-                if (comboBox1.SelectedItem is Customer selectedCustomer)
-                {
-                    _selectedCustomer = selectedCustomer;
-                    LoadBasketItems();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Помилка вибору клієнта: {ex.Message}", "Помилка");
-            }
-        }
-
-        // Логіка завантаження та відображення кошика
 
         private DataGridViewTextBoxColumn CreateColumn(string name, string header, bool isReadOnly, string dataPropertyName)
         {
-            var col = new DataGridViewTextBoxColumn();
-            col.Name = name;
-            col.HeaderText = header;
-            col.ReadOnly = isReadOnly;
-            col.DataPropertyName = dataPropertyName;
-            return col;
+            return new DataGridViewTextBoxColumn
+            {
+                Name = name,
+                HeaderText = header,
+                ReadOnly = isReadOnly,
+                DataPropertyName = dataPropertyName
+            };
         }
 
         public void LoadBasketItems()
         {
             try
             {
+                if (dataGridView1 != null)
+                {
+                    dataGridView1.CellValueChanged -= dataGridView1_CellValueChanged;
+                    dataGridView1.CellContentClick -= dataGridView1_CellContentClick;
+                    dataGridView1.ClearSelection();
+                }
+
                 var items = BasketManager.GetItems();
                 DataTable dt = new DataTable();
 
@@ -179,16 +298,18 @@ namespace WindowsFormsApp2
                 dt.Columns.Add("Total", typeof(string));
                 dt.Columns.Add("ColorSizeId", typeof(int));
 
+                var culture = CultureInfo.CreateSpecificCulture("uk-UA");
+
                 foreach (var item in items)
                 {
                     dt.Rows.Add(
-                        item.ArticleNumber,
-                        item.Name,
-                        item.Color,
-                        item.Size,
+                        item.ArticleNumber ?? "",
+                        item.Name ?? "",
+                        item.Color ?? "",
+                        item.Size ?? "",
                         item.Quantity,
-                        item.Price.ToString("N2", CultureInfo.CreateSpecificCulture("uk-UA")) + " ₴",
-                        item.TotalPrice.ToString("N2", CultureInfo.CreateSpecificCulture("uk-UA")) + " ₴",
+                        item.Price.ToString("N2", culture) + " ₴",
+                        item.TotalPrice.ToString("N2", culture) + " ₴",
                         item.ColorSizeId
                     );
                 }
@@ -202,7 +323,7 @@ namespace WindowsFormsApp2
                     dataGridView1.Columns.Add(CreateColumn("Name", "Назва", true, "Name"));
                     dataGridView1.Columns.Add(CreateColumn("Color", "Колір", true, "Color"));
                     dataGridView1.Columns.Add(CreateColumn("Size", "Розмір", true, "Size"));
-                    dataGridView1.Columns.Add(CreateColumn("Quantity", "Кількість", false, "Quantity")); 
+                    dataGridView1.Columns.Add(CreateColumn("Quantity", "Кількість", false, "Quantity"));
                     dataGridView1.Columns.Add(CreateColumn("Price", "Ціна", true, "Price"));
                     dataGridView1.Columns.Add(CreateColumn("Total", "Сума", true, "Total"));
 
@@ -210,106 +331,178 @@ namespace WindowsFormsApp2
                     idCol.Visible = false;
                     dataGridView1.Columns.Add(idCol);
 
-                    // Додавання кнопки "Видалити"
-                    if (dataGridView1.Columns["RemoveButton"] == null)
+                    DataGridViewButtonColumn removeBtn = new DataGridViewButtonColumn
                     {
-                        DataGridViewButtonColumn removeBtn = new DataGridViewButtonColumn();
-                        removeBtn.HeaderText = "Дія";
-                        removeBtn.Text = "X";
-                        removeBtn.Name = "RemoveButton";
-                        removeBtn.UseColumnTextForButtonValue = true;
-                        dataGridView1.Columns.Add(removeBtn);
-                    }
+                        HeaderText = "Дія",
+                        Text = "X",
+                        Name = "RemoveButton",
+                        UseColumnTextForButtonValue = true,
+                        Width = 60
+                    };
+                    dataGridView1.Columns.Add(removeBtn);
 
                     dataGridView1.DataSource = dt;
                     dataGridView1.AllowUserToAddRows = false;
                     dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
                     dataGridView1.ReadOnly = false;
-                }
 
-                // Оновлення загальної суми з урахуванням знижки клієнта
-                decimal totalAmount = BasketManager.GetTotalAmount();
-                decimal discountFactor = 1 - (decimal)_selectedCustomer.DiscountPercent / 100;
-                decimal totalWithDiscount = totalAmount * discountFactor;
+                    dataGridView1.CellValueChanged += dataGridView1_CellValueChanged;
+                    dataGridView1.CellContentClick += dataGridView1_CellContentClick;
 
-                Label totalLabel = this.Controls.Find("label1", true).FirstOrDefault() as Label;
-                if (totalLabel != null)
-                {
-                    string displaySum = totalWithDiscount.ToString("N2", CultureInfo.CreateSpecificCulture("uk-UA")) + " ₴";
-
-                    if (_selectedCustomer.DiscountPercent > 0)
+                    dataGridView1.ClearSelection();
+                    if (dataGridView1.Rows.Count > 0)
                     {
-                        totalLabel.Text = $"Загальна сума: {displaySum} (Знижка {_selectedCustomer.DiscountPercent}%)";
-                    }
-                    else
-                    {
-                        totalLabel.Text = $"Загальна сума: {displaySum}";
+                        dataGridView1.CurrentCell = null;
                     }
                 }
+
+                UpdateTotalLabel();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Помилка завантаження кошика: {ex.Message}", "Помилка");
+                MessageBox.Show($"Помилка завантаження кошика: {ex.Message}",
+                    "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void UpdateTotalLabel()
+        {
+            Label totalLabel = this.Controls.Find("label1", true).FirstOrDefault() as Label;
+            if (totalLabel != null)
+            {
+                var culture = CultureInfo.CreateSpecificCulture("uk-UA");
+                decimal totalAmount = BasketManager.GetTotalAmount();
+                decimal finalAmount = totalAmount;
+
+                if (_selectedCustomer.DiscountPercent > 0)
+                {
+                    decimal discountAmount = totalAmount * (decimal)_selectedCustomer.DiscountPercent / 100m;
+                    finalAmount = totalAmount - discountAmount;
+
+                    totalLabel.Text = $"Сума: {totalAmount.ToString("N2", culture)} ₴  |  " +
+                                     $"Знижка ({_selectedCustomer.DiscountPercent}%): -{discountAmount.ToString("N2", culture)} ₴  |  " +
+                                     $"До сплати: {finalAmount.ToString("N2", culture)} ₴";
+                    totalLabel.ForeColor = Color.Green;
+                }
+                else
+                {
+                    totalLabel.Text = $"Загальна сума: {finalAmount.ToString("N2", culture)} ₴";
+                    totalLabel.ForeColor = Color.Black;
+                }
             }
         }
 
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex >= 0 && dataGridView1.Columns.Contains("RemoveButton") &&
-                dataGridView1.Columns[e.ColumnIndex].Name == "RemoveButton")
+            if (_isDeleting || e.RowIndex < 0 || e.ColumnIndex < 0) return;
+
+            try
             {
-                try
+                if (!dataGridView1.Columns.Contains("RemoveButton") ||
+                    dataGridView1.Columns[e.ColumnIndex].Name != "RemoveButton") return;
+
+                if (e.RowIndex >= dataGridView1.Rows.Count) return;
+
+                _isDeleting = true;
+
+                DataGridViewRow row = dataGridView1.Rows[e.RowIndex];
+
+                if (row.Cells["ColorSizeId"].Value == null || row.Cells["ColorSizeId"].Value == DBNull.Value)
                 {
-                    DataGridViewRow row = dataGridView1.Rows[e.RowIndex];
+                    MessageBox.Show("Неможливо видалити: ідентифікатор товару не знайдено.", "Помилка");
+                    _isDeleting = false;
+                    return;
+                }
 
-                    if (row.Cells["ColorSizeId"].Value == null || row.Cells["ColorSizeId"].Value == DBNull.Value)
-                    {
-                        MessageBox.Show("Неможливо видалити: ідентифікатор товару не знайдено.", "Помилка");
-                        return;
-                    }
+                int colorSizeId = Convert.ToInt32(row.Cells["ColorSizeId"].Value);
+                string productName = row.Cells["Name"].Value?.ToString() ?? "Товар";
+                string productSize = row.Cells["Size"].Value?.ToString() ?? "";
 
-                    int colorSizeId = Convert.ToInt32(row.Cells["ColorSizeId"].Value);
-                    string productName = row.Cells["Name"].Value?.ToString() ?? "Товар";
-                    string productSize = row.Cells["Size"].Value?.ToString() ?? "";
+                DialogResult dialogResult = CustomConfirmDialog.Show(
+                    $"Видалити '{productName}' (розмір: {productSize}) з кошика?",
+                    "Підтвердження видалення");
 
-                    DialogResult dialogResult = CustomConfirmDialog.Show($"Ви впевнені, що хочете видалити товар '{productName} ({productSize})' з кошика?","Підтвердження видалення");
+                if (dialogResult == DialogResult.Yes)
+                {
+                    dataGridView1.CellContentClick -= dataGridView1_CellContentClick;
+                    dataGridView1.CellValueChanged -= dataGridView1_CellValueChanged;
 
-                    if (dialogResult == DialogResult.Yes)
+                    try
                     {
                         if (BasketManager.RemoveItem(colorSizeId))
                         {
-                            LoadBasketItems();
+                            this.BeginInvoke(new Action(() =>
+                            {
+                                try
+                                {
+                                    LoadBasketItems();
+                                }
+                                finally
+                                {
+                                    _isDeleting = false;
+                                }
+                            }));
                         }
                         else
                         {
                             MessageBox.Show("Помилка при видаленні товару.", "Помилка",
                                           MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            dataGridView1.CellContentClick += dataGridView1_CellContentClick;
+                            dataGridView1.CellValueChanged += dataGridView1_CellValueChanged;
+                            _isDeleting = false;
                         }
                     }
+                    catch
+                    {
+                        dataGridView1.CellContentClick += dataGridView1_CellContentClick;
+                        dataGridView1.CellValueChanged += dataGridView1_CellValueChanged;
+                        _isDeleting = false;
+                        throw;
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    MessageBox.Show($"Критична помилка при видаленні: {ex.Message}", "Помилка");
-                    LoadBasketItems();
+                    _isDeleting = false;
                 }
+            }
+            catch (Exception ex)
+            {
+                _isDeleting = false;
+                MessageBox.Show($"Помилка при видаленні: {ex.Message}",
+                    "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                try { LoadBasketItems(); } catch { }
             }
         }
 
         private void dataGridView1_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex >= 0 && dataGridView1.Columns.Contains("Quantity") &&
+            if (e.RowIndex < 0) return;
+
+            if (dataGridView1.Columns.Contains("Quantity") &&
+                e.ColumnIndex >= 0 &&
+                e.ColumnIndex < dataGridView1.Columns.Count &&
                 dataGridView1.Columns[e.ColumnIndex].Name == "Quantity")
             {
                 dataGridView1.CellValueChanged -= dataGridView1_CellValueChanged;
 
                 try
                 {
+                    if (e.RowIndex >= dataGridView1.Rows.Count) return;
+
                     DataGridViewRow row = dataGridView1.Rows[e.RowIndex];
+
+                    if (row.Cells["ColorSizeId"].Value == null || row.Cells["ColorSizeId"].Value == DBNull.Value)
+                    {
+                        MessageBox.Show("Помилка: не вдалося визначити товар.", "Помилка");
+                        LoadBasketItems();
+                        return;
+                    }
+
                     int colorSizeId = Convert.ToInt32(row.Cells["ColorSizeId"].Value);
 
                     if (!int.TryParse(row.Cells["Quantity"].Value?.ToString(), out int newQuantity))
                     {
-                        MessageBox.Show("Будь ласка, введіть коректне числове значення для кількості.", "Помилка введення");
+                        MessageBox.Show("Введіть коректне числове значення.", "Помилка");
                         LoadBasketItems();
                         return;
                     }
@@ -318,12 +511,20 @@ namespace WindowsFormsApp2
 
                     if (newQuantity < 1)
                     {
-                        BasketManager.UpdateQuantity(colorSizeId, 0);
-                        MessageBox.Show("Кількість зменшено до нуля. Товар видалено з кошика.", "Видалення");
+                        DialogResult result = CustomConfirmDialog.Show(
+                            "Кількість менше 1. Видалити товар з кошика?", "Підтвердження");
+
+                        if (result == DialogResult.Yes)
+                        {
+                            BasketManager.UpdateQuantity(colorSizeId, 0);
+                        }
+                        LoadBasketItems();
+                        return;
                     }
-                    else if (newQuantity > maxStock)
+
+                    if (newQuantity > maxStock)
                     {
-                        MessageBox.Show($"На складі лише {maxStock} одиниць цього товару. Кількість буде встановлено на доступний максимум.", "Увага");
+                        MessageBox.Show($"На складі лише {maxStock} од.\nВстановлено максимум.", "Увага");
                         BasketManager.UpdateQuantity(colorSizeId, maxStock);
                     }
                     else
@@ -345,8 +546,6 @@ namespace WindowsFormsApp2
             }
         }
 
-        // Логіка БД(отримання актуального залишку товару)
-
         private int GetMaxStockQuantity(int colorSizeId)
         {
             int maxStock = 0;
@@ -355,13 +554,11 @@ namespace WindowsFormsApp2
                 if (DbConection.ConnectionDB())
                 {
                     string query = "SELECT stock_quantity FROM Color_Size WHERE color_size_id = @colorSizeId";
-
                     DbConection.msCommand.CommandText = query;
                     DbConection.msCommand.Parameters.Clear();
                     DbConection.msCommand.Parameters.AddWithValue("@colorSizeId", colorSizeId);
 
                     object result = DbConection.msCommand.ExecuteScalar();
-
                     if (result != null && result != DBNull.Value)
                     {
                         maxStock = Convert.ToInt32(result);
@@ -371,19 +568,20 @@ namespace WindowsFormsApp2
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Помилка отримання залишку товару: {ex.Message}", "Помилка БД");
-                maxStock = 0;
+                MessageBox.Show($"Помилка отримання залишку: {ex.Message}", "Помилка");
+                DbConection.CloseDB();
             }
             return maxStock;
         }
 
-        private void button1_Click(object sender, EventArgs e) // Кнопка "Оформити продаж"
+        private void button1_Click(object sender, EventArgs e)
         {
             try
             {
                 if (BasketManager.GetItems().Count == 0)
                 {
-                    MessageBox.Show("Ваш кошик порожній. Додайте товари перед оформленням.", "Помилка");
+                    MessageBox.Show("Кошик порожній. Додайте товари.", "Помилка",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
@@ -393,15 +591,13 @@ namespace WindowsFormsApp2
                 if (result == DialogResult.OK)
                 {
                     this.Close();
-
                     if (this.Owner is SellerMainForm mainForm)
                     {
                         mainForm.Show();
                     }
                     else
                     {
-                        SellerMainForm newMainForm = new SellerMainForm();
-                        newMainForm.Show();
+                        new SellerMainForm().Show();
                     }
                 }
                 else
@@ -411,44 +607,41 @@ namespace WindowsFormsApp2
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Помилка при оформленні: {ex.Message}", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Помилка оформлення: {ex.Message}", "Помилка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void button2_Click(object sender, EventArgs e) // Кнопка "Повернутися"
+        private void button2_Click(object sender, EventArgs e)
         {
             try
             {
                 if (this.Owner is SellerMainForm mainForm)
                 {
                     mainForm.Show();
-                    this.Close();
                 }
                 else
                 {
-                    SellerMainForm newMainForm = new SellerMainForm();
-                    newMainForm.Show();
-                    this.Close();
+                    new SellerMainForm().Show();
                 }
+                this.Close();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Помилка при поверненні: {ex.Message}", "Помилка");
-                try
-                {
-                    SellerMainForm fallbackForm = new SellerMainForm();
-                    fallbackForm.Show();
-                    this.Close();
-                }
-                catch
-                {
-                    Application.Exit();
-                }
+                MessageBox.Show($"Помилка: {ex.Message}", "Помилка");
+                Application.Exit();
             }
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            BasketManager.BasketChanged -= OnBasketChanged;
+            base.OnFormClosing(e);
         }
 
         private void panel2_Paint(object sender, PaintEventArgs e) { }
         private void label3_Click(object sender, EventArgs e) { }
+        private void label5_Click(object sender, EventArgs e) { }
         private void backgroundWorker1_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e) { }
         private void panel1_Paint(object sender, PaintEventArgs e) { }
         private void close_Click(object sender, EventArgs e) { Application.Exit(); }

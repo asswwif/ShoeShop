@@ -51,6 +51,10 @@
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=5.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.5.0.0\lib\net461\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Office.Interop.Excel, Version=16.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Office.Interop.Excel.16.0.18925.20022\lib\net40\Microsoft.Office.Interop.Excel.dll</HintPath>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
     <Reference Include="Microsoft.Office.Interop.Word, Version=15.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Office.Interop.Word.15.0.4797.1004\lib\net20\Microsoft.Office.Interop.Word.dll</HintPath>
       <EmbedInteropTypes>True</EmbedInteropTypes>
@@ -112,6 +116,12 @@
     <Compile Include="CustomConfirmDialog.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="CustomerSalesHistoryForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="CustomerSalesHistoryForm.Designer.cs">
+      <DependentUpon>CustomerSalesHistoryForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="DiscountCardForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -127,6 +137,7 @@
     </Compile>
     <Compile Include="DbConection.cs" />
     <Compile Include="EmployeeService.cs" />
+    <Compile Include="ExcelReportService.cs" />
     <Compile Include="InfoValidator.cs" />
     <Compile Include="PersonalInfoForm.cs">
       <SubType>Form</SubType>
@@ -153,11 +164,11 @@
     <Compile Include="ReturnsForm.Designer.cs">
       <DependentUpon>ReturnsForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="sales.cs">
+    <Compile Include="CustomerSelector.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="sales.Designer.cs">
-      <DependentUpon>sales.cs</DependentUpon>
+    <Compile Include="CustomerSelector.Designer.cs">
+      <DependentUpon>CustomerSelector.cs</DependentUpon>
     </Compile>
     <Compile Include="SalesConfirmationForm.cs">
       <SubType>Form</SubType>
@@ -200,6 +211,9 @@
     <EmbeddedResource Include="CustomConfirmDialog.resx">
       <DependentUpon>CustomConfirmDialog.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="CustomerSalesHistoryForm.resx">
+      <DependentUpon>CustomerSalesHistoryForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="DiscountCardForm.resx">
       <DependentUpon>DiscountCardForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -218,8 +232,8 @@
     <EmbeddedResource Include="ReturnsForm.resx">
       <DependentUpon>ReturnsForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="sales.resx">
-      <DependentUpon>sales.cs</DependentUpon>
+    <EmbeddedResource Include="CustomerSelector.resx">
+      <DependentUpon>CustomerSelector.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="SalesConfirmationForm.resx">
       <DependentUpon>SalesConfirmationForm.cs</DependentUpon>

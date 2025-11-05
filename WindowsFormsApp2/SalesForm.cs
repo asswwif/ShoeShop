@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Data;
+using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace WindowsFormsApp2
@@ -7,6 +9,7 @@ namespace WindowsFormsApp2
     public partial class SalesForm : Form
     {
         private SalesService _salesService;
+
         public SalesForm()
         {
             InitializeComponent();
@@ -16,15 +19,56 @@ namespace WindowsFormsApp2
             dateTimePicker1.Value = DateTime.Today.AddMonths(-1);
             dateTimePicker2.Value = DateTime.Today;
             SetupDataGridView();
-            LoadSalesHistory(); 
+            LoadSalesHistory();
+            UpdateBasketButton();
+            this.MinimumSize = new Size(900, 500);
+            this.MaximumSize = new Size(1800, 960);
+        }
+
+        private void UpdateBasketButton()
+        {
+            try
+            {
+                int itemCount = BasketManager.GetItems().Count;
+                if (itemCount > 0)
+                {
+                    // Кошик не порожній, то підсвічуємо
+                    button3.BackColor = Color.Maroon;
+                    button3.Text = $"Кошик ({itemCount})";
+                    button3.Font = new Font("Arial", 12, FontStyle.Bold);
+                    button3.ForeColor = Color.White;
+                }
+                else
+                {
+                    // Кошик порожній - стандартний вигляд
+                    button3.BackColor = Color.LightPink;
+                    button3.Text = "Кошик";
+                    button3.Font = new Font("Arial", 12, FontStyle.Bold);
+                    button3.ForeColor = Color.White;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Якщо помилка, то просто ігноруємо
+                Console.WriteLine($"Помилка оновлення кошика: {ex.Message}");
+            }
+        }
+
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+            if (this.Visible)
+            {
+                UpdateBasketButton();
+            }
         }
 
         private void SetupDataGridView()
         {
-            dataGridView1.AutoGenerateColumns = true; 
+            dataGridView1.AutoGenerateColumns = true;
             dataGridView1.ReadOnly = true;
             dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dataGridView1.RowTemplate.MinimumHeight = 50; 
+            dataGridView1.RowTemplate.MinimumHeight = 50;
         }
 
         private void LoadSalesHistory()
@@ -77,15 +121,22 @@ namespace WindowsFormsApp2
 
         private void button1_Click(object sender, EventArgs e)
         {
-
-            SellerMainForm mainForm = new SellerMainForm();
-            mainForm.Show();
-            this.Hide();
+            SellerMainForm mainForm = Application.OpenForms.OfType<SellerMainForm>().FirstOrDefault();
+            if (mainForm != null)
+            {
+                mainForm.UpdateBasketButton();
+                mainForm.Show();
+            }
+            else
+            {
+                mainForm = new SellerMainForm();
+                mainForm.Show();
+            }
+            this.Close();
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-
             CustomerForm customerForm = new CustomerForm();
             customerForm.Show();
             this.Hide();
@@ -112,7 +163,7 @@ namespace WindowsFormsApp2
             this.Hide();
         }
 
-        private void dateTimePicker1_ValueChanged(object sender, EventArgs e) 
+        private void dateTimePicker1_ValueChanged(object sender, EventArgs e)
         {
             if (dateTimePicker1.Value > dateTimePicker2.Value)
             {
@@ -120,8 +171,7 @@ namespace WindowsFormsApp2
             }
         }
 
-
-        private void dateTimePicker2_ValueChanged(object sender, EventArgs e) 
+        private void dateTimePicker2_ValueChanged(object sender, EventArgs e)
         {
             if (dateTimePicker2.Value < dateTimePicker1.Value)
             {
@@ -129,17 +179,85 @@ namespace WindowsFormsApp2
             }
         }
 
-
-        private void button7_Click(object sender, EventArgs e) { LoadSalesHistory();}
-
-
+        private void button7_Click(object sender, EventArgs e) { LoadSalesHistory(); }
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
-
         private void close_Click(object sender, EventArgs e)
         {
             Application.Exit();
         }
-
         private void panel4_Paint(object sender, PaintEventArgs e) { }
+
+        private void button8_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Перевірка чи є дані
+                if (dataGridView1.Rows.Count == 0)
+                {
+                    MessageBox.Show("Немає даних для експорту. Спочатку завантажте дані.", "Увага",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Діалог збереження файлу
+                SaveFileDialog saveDialog = new SaveFileDialog();
+                saveDialog.Filter = "Excel файли (*.xlsx)|*.xlsx";
+                saveDialog.FileName = $"Звіт_Продажі_{DateTime.Now:yyyy-MM-dd_HH-mm}";
+                saveDialog.Title = "Зберегти звіт";
+
+                if (saveDialog.ShowDialog() == DialogResult.OK)
+                {
+                    // Показуємо індикатор завантаження
+                    Cursor = Cursors.WaitCursor;
+
+                    // Отримуємо детальні дані для експорту
+                    var data = _salesService.GetSalesHistoryForExport(
+                        dateTimePicker1.Value.Date,
+                        dateTimePicker2.Value.Date
+                    );
+
+                    // Перевірка чи отримали дані
+                    if (data.Rows.Count == 0)
+                    {
+                        MessageBox.Show("Немає даних для експорту за обраний період.", "Увага",
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    // Генеруємо звіт
+                    using (ExcelReportService excelService = new ExcelReportService())
+                    {
+                        excelService.GenerateSalesReport(
+                            data,
+                            saveDialog.FileName,
+                            dateTimePicker1.Value.Date,
+                            dateTimePicker2.Value.Date
+                        );
+                    }
+
+                    Cursor = Cursors.Default;
+
+                    // Питаємо чи відкрити файл
+                    DialogResult result = MessageBox.Show(
+                        "Звіт успішно створено! Відкрити файл?",
+                        "Успіх",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Information
+                    );
+
+                    if (result == DialogResult.Yes)
+                    {
+                        System.Diagnostics.Process.Start(saveDialog.FileName);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Cursor = Cursors.Default;
+                MessageBox.Show($"Помилка експорту в Excel: {ex.Message}\n\nДеталі: {ex.StackTrace}",
+                    "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
     }
 }
+

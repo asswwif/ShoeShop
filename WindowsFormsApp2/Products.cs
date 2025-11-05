@@ -2,6 +2,7 @@
 using System.Data;
 using System.Windows.Forms;
 using System.Globalization;
+using System.Linq;
 
 namespace WindowsFormsApp2
 {
@@ -114,7 +115,6 @@ namespace WindowsFormsApp2
             comboBox4.SelectedIndex = 0;
         }
 
-        // Логіка завантаження та фільтрації товарів
         private void LoadProducts()
         {
             try
@@ -129,7 +129,6 @@ namespace WindowsFormsApp2
                     p.article_number AS 'Артикул',
                     p.product_name AS 'Назва',
                     COALESCE(b.brand_name, '') AS 'Бренд',
-                    -- ВИПРАВЛЕНО: Використовуємо CAST, щоб уникнути тисячних роздільників від FORMAT
                     CONCAT(CAST(p.price AS CHAR), ' ₴') AS 'Ціна', 
                     c.color_name AS 'Колір',
                     s.size_value AS 'Розмір',
@@ -142,8 +141,6 @@ namespace WindowsFormsApp2
                 WHERE cs.stock_quantity > 0";
 
                     DbConection.msCommand.Parameters.Clear();
-
-                    // Додавання логіки фільтрів
 
                     if (!string.IsNullOrEmpty(searchText))
                     {
@@ -182,8 +179,10 @@ namespace WindowsFormsApp2
 
                     dataGridView1.DataSource = table;
 
-                    // Налаштування DataGridView
                     dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+                    dataGridView1.AutoResizeColumns();
+
+
                     dataGridView1.ReadOnly = true;
                     dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
                     dataGridView1.AllowUserToAddRows = false;
@@ -211,8 +210,6 @@ namespace WindowsFormsApp2
                 MessageBox.Show($"Помилка завантаження товарів: {ex.Message}", "Помилка");
             }
         }
-
-        // Обробка кліку(додавання товару у кошик)
 
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
@@ -242,19 +239,16 @@ namespace WindowsFormsApp2
                     }
                     int colorSizeId = Convert.ToInt32(selectedRow.Cells["color_size_id"].Value);
 
-                    // Парсинг ціни
                     string priceText = selectedRow.Cells["Ціна"].Value.ToString();
                     decimal price;
 
                     priceText = priceText.Replace(" ₴", "").Trim();
 
-                    // Замінюємо кому на крапку, якщо вона використовується як десятковий роздільник
                     if (priceText.Contains(","))
                     {
                         priceText = priceText.Replace(',', '.');
                     }
 
-                    // Парсимо, використовуючи InvariantCulture
                     if (!decimal.TryParse(priceText, NumberStyles.Currency, CultureInfo.InvariantCulture, out price))
                     {
                         MessageBox.Show("Помилка парсингу ціни. Не вдалося перетворити значення ціни на число.", "Помилка");
@@ -274,38 +268,49 @@ namespace WindowsFormsApp2
 
                     BasketManager.AddItem(item);
                     MessageBox.Show($"Товар '{name} ({size}, {color})' додано до кошика.", "Успіх", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    NotifyBasketChanged();
                 }
+            }
+        }
+
+        private void NotifyBasketChanged()
+        {
+            try
+            {
+                SellerMainForm mainForm = Application.OpenForms.OfType<SellerMainForm>().FirstOrDefault();
+                mainForm?.UpdateBasketButton();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Помилка оновлення кошика: {ex.Message}");
             }
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e) { }
 
-        private void button1_Click(object sender, EventArgs e) // кнопка пошук
+        private void button1_Click(object sender, EventArgs e)
         {
             LoadProducts();
         }
 
-        private void button2_Click(object sender, EventArgs e) // кнопка очистити
+        private void button2_Click(object sender, EventArgs e)
         {
             textBox1.Text = "";
             LoadProducts();
         }
 
         private void comboBox5_SelectedIndexChanged(object sender, EventArgs e) { }
-
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e) { }
-        
         private void comboBox2_SelectedIndexChanged(object sender, EventArgs e) { }
-        
         private void comboBox4_SelectedIndexChanged(object sender, EventArgs e) { }
-        
 
-        private void button3_Click(object sender, EventArgs e) // застосувати
+        private void button3_Click(object sender, EventArgs e)
         {
             LoadProducts();
         }
 
-        private void button4_Click(object sender, EventArgs e) // скинути
+        private void button4_Click(object sender, EventArgs e)
         {
             textBox1.Text = "";
 
@@ -319,8 +324,6 @@ namespace WindowsFormsApp2
 
         private void panel2_Paint(object sender, PaintEventArgs e) { }
         private void panel1_Paint(object sender, PaintEventArgs e) { }
-
         private void Products_Load(object sender, EventArgs e) { }
     }
 }
-

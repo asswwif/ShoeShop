@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace WindowsFormsApp2
 {
-    public partial class sales : UserControl
+    public partial class CustomerSelector : UserControl
     {
         private CustomerService customerService;
         private DiscountCardService discountCardService;
@@ -16,7 +16,7 @@ namespace WindowsFormsApp2
         private List<Customer> filteredCustomers; 
         private Customer selectedCustomer;
 
-        public sales()
+        public CustomerSelector()
         {
             InitializeComponent();
             customerService = new CustomerService();
@@ -37,49 +37,6 @@ namespace WindowsFormsApp2
                 MessageBox.Show($"Помилка завантаження даних: {ex.Message}", "Помилка",
                        MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-        }
-
-        private void UpdateDataGridView()
-        {
-            if (customers == null) return;
-
-            // Створюємо DataTable для відображення
-            DataTable dataTable = new DataTable();
-            dataTable.Columns.Add("ID", typeof(int));
-            dataTable.Columns.Add("Ім'я", typeof(string));
-            dataTable.Columns.Add("Прізвище", typeof(string));
-            dataTable.Columns.Add("Телефон", typeof(string));
-            dataTable.Columns.Add("Дата народження", typeof(string));
-            dataTable.Columns.Add("Знижка %", typeof(int));
-
-            // Заповнюємо DataTable
-            foreach (var customer in customers)
-            {
-                string birthDateString = "";
-                if (customer.BirthDate != DateTime.MinValue && customer.BirthDate.Year > 1900)
-                {
-                    birthDateString = customer.BirthDate.ToString("dd.MM.yyyy");
-                }
-
-                dataTable.Rows.Add(
-                  customer.CustomerId,
-                  customer.FirstName,
-                  customer.LastName,
-                  customer.PhoneNumber,
-                  birthDateString,
-                  customer.DiscountPercent
-                );
-            }
-
-            dataGridView1.DataSource = dataTable;
-
-            // Налаштування відображення
-            if (dataGridView1.Columns["ID"] != null)
-                dataGridView1.Columns["ID"].Visible = false;
-
-            dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dataGridView1.ReadOnly = true;
-            dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         }
 
         private void UpdateDataGridViewWithFiltered()

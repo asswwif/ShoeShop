@@ -27,6 +27,8 @@ namespace WindowsFormsApp2
         public SalesConfirmationForm(Customer selectedCustomer)
         {
             InitializeComponent();
+            this.MinimumSize = new Size(900, 500);
+            this.MaximumSize = new Size(1800, 960);
 
             // Якщо клієнт не обраний, створюємо об'єкт "Без Клієнта"
             _customer = selectedCustomer ?? new Customer { CustomerId = 0, FirstName = "Без", LastName = "Клієнта", DiscountPercent = 0 };
@@ -317,7 +319,7 @@ namespace WindowsFormsApp2
         }
 
 
-        private void button1_Click(object sender, EventArgs e) // Кнопка "Оформити продаж"
+        private void button1_Click(object sender, EventArgs e) 
         {
             if (_items == null || _items.Count == 0)
             {

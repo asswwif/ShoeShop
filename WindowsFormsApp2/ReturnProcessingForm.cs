@@ -16,11 +16,12 @@ namespace WindowsFormsApp2
             InitializeComponent();
             _returnService = new ReturnService();
             SetupDataGridView();
+            this.MinimumSize = new Size(900, 500);
+            this.MaximumSize = new Size(1800, 960);
         }
 
         private void SetupDataGridView()
         {
-            // Налаштування стовпців DataGridView для повернення
             dataGridView1.DataSource = null;
             dataGridView1.Columns.Clear();
             dataGridView1.AutoGenerateColumns = false;
@@ -76,7 +77,6 @@ namespace WindowsFormsApp2
                 return;
             }
 
-            // Завантажуємо дані та прив'язуємо їх до існуючих колонок
             dataGridView1.DataSource = details;
         }
 

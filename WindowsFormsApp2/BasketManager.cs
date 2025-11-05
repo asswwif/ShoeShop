@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Forms;
 
 namespace WindowsFormsApp2
 {
@@ -15,64 +17,194 @@ namespace WindowsFormsApp2
         public decimal TotalPrice => Price * Quantity;
     }
 
-    // клас для управління глобальним станом кошика
     public static class BasketManager
     {
         private static List<BasketItem> items = new List<BasketItem>();
 
+        public static event EventHandler BasketChanged;
+
         public static List<BasketItem> GetItems()
         {
-            return items;
+            return new List<BasketItem>(items);
         }
 
-        public static void AddItem(BasketItem newItem)
+        public static bool AddItem(BasketItem newItem)
         {
-            var existingItem = items.FirstOrDefault(i => i.ColorSizeId == newItem.ColorSizeId);
+            try
+            {
+                // Валідація вхідних даних
+                if (newItem == null)
+                {
+                    MessageBox.Show("Помилка: товар не може бути null", "Помилка валідації",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
 
-            if (existingItem != null)
-            {
-                existingItem.Quantity += newItem.Quantity;
+                if (newItem.ColorSizeId <= 0)
+                {
+                    MessageBox.Show("Помилка: невірний ідентифікатор товару", "Помилка валідації",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+
+                if (string.IsNullOrWhiteSpace(newItem.Size))
+                {
+                    MessageBox.Show("Помилка: розмір не може бути порожнім", "Помилка валідації",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+
+                if (string.IsNullOrWhiteSpace(newItem.Name))
+                {
+                    MessageBox.Show("Помилка: назва товару не може бути порожньою", "Помилка валідації",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+
+                if (newItem.Quantity <= 0)
+                {
+                    MessageBox.Show("Помилка: кількість повинна бути більше 0", "Помилка валідації",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+
+                if (newItem.Price < 0)
+                {
+                    MessageBox.Show("Помилка: ціна не може бути від'ємною", "Помилка валідації",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+
+                // Перевірка чи товар вже є в кошику
+                var existingItem = items.FirstOrDefault(i => i.ColorSizeId == newItem.ColorSizeId);
+
+                if (existingItem != null)
+                {
+                    // Оновлюємо кількість існуючого товару
+                    existingItem.Quantity += newItem.Quantity;
+                }
+                else
+                {
+                    // Додаємо новий товар
+                    items.Add(newItem);
+                }
+
+                // Викликаємо подію про зміну кошика
+                OnBasketChanged();
+                return true;
             }
-            else
+            catch (Exception ex)
             {
-                items.Add(newItem);
+                MessageBox.Show($"Помилка при додаванні товару до кошика: {ex.Message}",
+                    "Критична помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
             }
         }
 
         public static bool RemoveItem(int colorSizeId)
         {
-            var itemToRemove = items.FirstOrDefault(i => i.ColorSizeId == colorSizeId);
-            if (itemToRemove != null)
+            try
             {
-                return items.Remove(itemToRemove);
+                // Шукаємо індекс товару за colorSizeId
+                int indexToRemove = -1;
+                for (int i = 0; i < items.Count; i++)
+                {
+                    if (items[i].ColorSizeId == colorSizeId)
+                    {
+                        indexToRemove = i;
+                        break;
+                    }
+                }
+
+                // Якщо знайшли - видаляємо
+                if (indexToRemove >= 0 && indexToRemove < items.Count)
+                {
+                    items.RemoveAt(indexToRemove);
+                    // Викликаємо подію про зміну кошика
+                    OnBasketChanged();
+                    return true;
+                }
+
+                return false;
             }
-            return false;
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при видаленні товару: {ex.Message}\n\nStack: {ex.StackTrace}",
+                    "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
         }
 
         public static bool UpdateQuantity(int colorSizeId, int newQuantity)
         {
-            if (newQuantity <= 0)
+            try
             {
-                return RemoveItem(colorSizeId);
-            }
+                if (newQuantity <= 0)
+                {
+                    return RemoveItem(colorSizeId);
+                }
 
-            var existingItem = items.FirstOrDefault(i => i.ColorSizeId == colorSizeId);
-            if (existingItem != null)
-            {
-                existingItem.Quantity = newQuantity;
-                return true;
+                var existingItem = items.FirstOrDefault(i => i.ColorSizeId == colorSizeId);
+                if (existingItem != null)
+                {
+                    existingItem.Quantity = newQuantity;
+                    // Викликаємо подію про зміну кошика
+                    OnBasketChanged();
+                    return true;
+                }
+                return false;
             }
-            return false;
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при оновленні кількості: {ex.Message}",
+                    "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
         }
 
         public static void ClearBasket()
         {
-            items.Clear();
+            try
+            {
+                items.Clear();
+                // Викликаємо подію про зміну кошика
+                OnBasketChanged();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при очищенні кошика: {ex.Message}",
+                    "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         public static decimal GetTotalAmount()
         {
-            return items.Sum(i => i.TotalPrice);
+            try
+            {
+                return items.Sum(i => i.TotalPrice);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при розрахунку суми: {ex.Message}",
+                    "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return 0;
+            }
+        }
+
+        public static int GetItemCount()
+        {
+            return items.Count;
+        }
+
+        public static bool HasItem(int colorSizeId)
+        {
+            return items.Any(i => i.ColorSizeId == colorSizeId);
+        }
+
+        // Метод для виклику події
+        private static void OnBasketChanged()
+        {
+            BasketChanged?.Invoke(null, EventArgs.Empty);
         }
     }
 }
