@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Windows.Forms;
-using System.Drawing; 
+using System.Drawing;
 
 namespace WindowsFormsApp2
 {
@@ -46,6 +46,16 @@ namespace WindowsFormsApp2
                 Name = "colQtyReturn",
                 DefaultCellStyle = new DataGridViewCellStyle { NullValue = "0", BackColor = Color.LightYellow },
                 Width = 120
+            });
+
+            dataGridView1.Columns.Add(new DataGridViewComboBoxColumn
+            {
+                HeaderText = "Дія",
+                Name = "colAction",
+                DataSource = new string[] { "На склад", "Списання" },
+                FlatStyle = FlatStyle.Flat,
+                DefaultCellStyle = new DataGridViewCellStyle { BackColor = Color.LightCyan },
+                Width = 100
             });
 
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
@@ -126,11 +136,25 @@ namespace WindowsFormsApp2
                         break;
                     }
 
+                    // Отримання обраної дії
+                    string returnAction = row.Cells["colAction"].Value?.ToString();
+
+                    if (string.IsNullOrEmpty(returnAction))
+                    {
+                        MessageBox.Show($"Оберіть дію ('На склад' або 'Списання') для товару '{row.Cells["colProductName"].Value}'.", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        allSuccess = false;
+                        break;
+                    }
+
+                    // Визначаємо, чи потрібно оновлювати запас
+                    bool updateStock = returnAction == "На склад";
+
                     int saleDetailId = Convert.ToInt32(row.Cells["colSaleDetailId"].Value);
                     int colorSizeId = Convert.ToInt32(row.Cells["colColorSizeId"].Value);
                     string reason = row.Cells["colReason"].Value?.ToString() ?? "Не вказано";
 
-                    if (!_returnService.ProcessReturn(saleDetailId, _currentEmployeeId, colorSizeId, qtyReturn, reason))
+                    // Виклик оновленого методу ProcessReturn з параметром returnDestination
+                    if (!_returnService.ProcessReturn(saleDetailId, _currentEmployeeId, colorSizeId, qtyReturn, reason, updateStock, returnAction))
                     {
                         allSuccess = false;
                         break;
@@ -140,10 +164,10 @@ namespace WindowsFormsApp2
 
             if (allSuccess)
             {
-                MessageBox.Show("Повернення успішно оформлено! Склад оновлено.", "Успіх", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Повернення успішно оформлено! Запаси оновлено згідно з обраною дією.", "Успіх", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 // Очищуємо форму після успішного оформлення
                 textBox1.Clear();
-                SetupDataGridView(); 
+                SetupDataGridView();
             }
         }
 
@@ -153,7 +177,7 @@ namespace WindowsFormsApp2
             returnForm.Show();
             this.Hide();
         }
- 
+
         private void textBox1_TextChanged(object sender, EventArgs e) { }
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
 

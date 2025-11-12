@@ -167,7 +167,23 @@ namespace WindowsFormsApp2
 
         private void buttonHistory_Click_1(object sender, EventArgs e)
         {
-            
+            if (_selectedCustomer == null || _selectedCustomer.CustomerId == 0)
+            {
+                MessageBox.Show("Спочатку оберіть клієнта, щоб переглянути історію покупок.",
+                    "Увага", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                CustomerSalesHistoryForm historyForm = new CustomerSalesHistoryForm(_selectedCustomer);
+                historyForm.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка відкриття історії: {ex.Message}", "Помилка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void button3_Click(object sender, EventArgs e)

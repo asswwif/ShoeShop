@@ -225,33 +225,120 @@ namespace WindowsFormsApp2
                     return;
                 }
 
+                // Діалог збереження файлу з вибором формату
                 SaveFileDialog saveDialog = new SaveFileDialog();
-                saveDialog.Filter = "Excel файли (*.xlsx)|*.xlsx";
+                saveDialog.Filter = "Excel файли (*.xlsx)|*.xlsx|Word документи (*.docx)|*.docx|PDF файли (*.pdf)|*.pdf";
                 saveDialog.FilterIndex = 1;
                 saveDialog.FileName = $"Звіт_Повернення_{DateTime.Now:yyyy-MM-dd_HH-mm}";
+                saveDialog.Title = "Зберегти звіт";
 
                 if (saveDialog.ShowDialog() == DialogResult.OK)
                 {
-                    DataTable data = _returnService.GetReturnsDataForExport(
-                        dateTimePicker1.Value.Date,
-                        dateTimePicker2.Value.Date.AddDays(1)
-                    );
+                    // Показуємо індикатор завантаження
+                    Cursor = Cursors.WaitCursor;
 
-                    using (ExcelReportService excelService = new ExcelReportService())
+                    try
                     {
-                        excelService.GenerateReturnsReport(
-                            data,
-                            saveDialog.FileName,
+                        DataTable data = _returnService.GetReturnsDataForExport(
                             dateTimePicker1.Value.Date,
-                            dateTimePicker2.Value.Date
+                            dateTimePicker2.Value.Date.AddDays(1)
                         );
+
+                        // Перевірка чи отримали дані
+                        if (data.Rows.Count == 0)
+                        {
+                            MessageBox.Show("Немає даних для експорту за обраний період.", "Увага",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            Cursor = Cursors.Default;
+                            return;
+                        }
+
+                        // Визначаємо формат за розширенням файлу
+                        string extension = System.IO.Path.GetExtension(saveDialog.FileName).ToLower();
+
+                        if (extension == ".xlsx")
+                        {
+                            // Генеруємо звіт Excel
+                            using (ExcelReportService excelService = new ExcelReportService())
+                            {
+                                excelService.GenerateReturnsReport(
+                                    data,
+                                    saveDialog.FileName,
+                                    dateTimePicker1.Value.Date,
+                                    dateTimePicker2.Value.Date
+                                );
+                            }
+                        }
+                        else if (extension == ".docx" || extension == ".pdf")
+                        {
+                            // Генеруємо звіт Word (або PDF через Word)
+                            using (WordReportService wordService = new WordReportService())
+                            {
+                                wordService.GenerateReturnsReport(
+                                    data,
+                                    saveDialog.FileName,
+                                    dateTimePicker1.Value.Date,
+                                    dateTimePicker2.Value.Date
+                                );
+                            }
+                        }
+
+                        Cursor = Cursors.Default;
+
+                        // Додаємо паузу для гарантії збереження файлу
+                        System.Threading.Thread.Sleep(500);
+
+                        // Перевіряємо існування файлу
+                        if (!System.IO.File.Exists(saveDialog.FileName))
+                        {
+                            MessageBox.Show("Файл було створено, але не вдалося підтвердити його збереження.", "Увага",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        }
+
+                        // Питаємо чи відкрити файл
+                        DialogResult result = CustomConfirmDialog.Show(
+                            "Звіт успішно створено! Відкрити файл?",
+                            "Успіх"
+                        );
+
+                        if (result == DialogResult.Yes)
+                        {
+                            try
+                            {
+                                // Додаткова пауза перед відкриттям
+                                System.Threading.Thread.Sleep(300);
+
+                                // Використовуємо ProcessStartInfo для кращої сумісності
+                                var startInfo = new System.Diagnostics.ProcessStartInfo
+                                {
+                                    FileName = saveDialog.FileName,
+                                    UseShellExecute = true
+                                };
+                                System.Diagnostics.Process.Start(startInfo);
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"Файл збережено, але не вдалося його відкрити: {ex.Message}\n\nВи можете знайти файл за шляхом:\n{saveDialog.FileName}",
+                                    "Інформація",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Information);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Cursor = Cursors.Default;
+                        MessageBox.Show($"Помилка під час створення звіту: {ex.Message}\n\nДеталі: {ex.StackTrace}",
+                            "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Помилка експорту в Excel: {ex.Message}", "Помилка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Cursor = Cursors.Default;
+                MessageBox.Show($"Помилка експорту звіту: {ex.Message}\n\nДеталі: {ex.StackTrace}",
+                    "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

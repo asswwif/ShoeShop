@@ -16,6 +16,8 @@ namespace WindowsFormsApp2
             {
                 if (!DbConection.ConnectionDB()) return salesDt;
 
+                int currentEmployeeId = SessionManager.CurrentEmployeeId;
+
                 string query = @"
                     SELECT
                         S.sale_id,
@@ -31,6 +33,7 @@ namespace WindowsFormsApp2
                         Employee E ON S.employee_id = E.employee_id
                     WHERE
                         DATE(S.sale_datetime) BETWEEN @start_date AND @end_date
+                        AND S.employee_id = @employee_id_filter -- <--- ДОДАНО ФІЛЬТР
                     ORDER BY
                         S.sale_datetime DESC;";
 
@@ -38,6 +41,7 @@ namespace WindowsFormsApp2
                 DbConection.msCommand.Parameters.Clear();
                 DbConection.msCommand.Parameters.AddWithValue("@start_date", startDate.Date);
                 DbConection.msCommand.Parameters.AddWithValue("@end_date", endDate.Date);
+                DbConection.msCommand.Parameters.AddWithValue("@employee_id_filter", currentEmployeeId); // <--- ДОДАНО ПАРАМЕТР
 
                 using (MySqlDataAdapter adapter = new MySqlDataAdapter(DbConection.msCommand))
                 {
@@ -73,6 +77,8 @@ namespace WindowsFormsApp2
             {
                 if (!DbConection.ConnectionDB()) return salesDt;
 
+                int currentEmployeeId = SessionManager.CurrentEmployeeId;
+
                 string query = @"
                     SELECT
                         S.sale_id,
@@ -93,6 +99,7 @@ namespace WindowsFormsApp2
                     INNER JOIN Size Sz ON CS.size_id = Sz.size_id
                     WHERE
                         DATE(S.sale_datetime) BETWEEN @start_date AND @end_date
+                        AND S.employee_id = @employee_id_filter -- <--- ДОДАНО ФІЛЬТР
                     ORDER BY
                         S.sale_datetime DESC, S.sale_id DESC;";
 
@@ -100,6 +107,7 @@ namespace WindowsFormsApp2
                 DbConection.msCommand.Parameters.Clear();
                 DbConection.msCommand.Parameters.AddWithValue("@start_date", startDate.Date);
                 DbConection.msCommand.Parameters.AddWithValue("@end_date", endDate.Date);
+                DbConection.msCommand.Parameters.AddWithValue("@employee_id_filter", currentEmployeeId); // <--- ДОДАНО ПАРАМЕТР
 
                 using (MySqlDataAdapter adapter = new MySqlDataAdapter(DbConection.msCommand))
                 {

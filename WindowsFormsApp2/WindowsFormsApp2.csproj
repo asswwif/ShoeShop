@@ -205,6 +205,7 @@
     <Compile Include="PasswordHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="WordReportService.cs" />
     <EmbeddedResource Include="BasketForm.resx">
       <DependentUpon>BasketForm.cs</DependentUpon>
     </EmbeddedResource>

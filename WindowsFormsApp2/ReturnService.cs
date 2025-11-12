@@ -7,6 +7,7 @@ namespace WindowsFormsApp2
 {
     public class ReturnService
     {
+
         public DataTable GetAllReturnsData()
         {
             DataTable dt = new DataTable();
@@ -28,6 +29,7 @@ namespace WindowsFormsApp2
                         S.size_value AS 'Розмір',
                         R.product_quantity AS 'Кількість',
                         R.reason AS 'Причина',
+                        R.return_destination AS 'Призначення',
                         CONCAT(E.first_name, ' ', E.last_name) AS 'Працівник'
                     FROM
                         `Return` R
@@ -53,7 +55,7 @@ namespace WindowsFormsApp2
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка завантаження повернень: {ex.Message}", "Помилка",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                 MessageBoxButtons.OK, MessageBoxIcon.Error);
                 DbConection.CloseDB();
             }
 
@@ -81,6 +83,7 @@ namespace WindowsFormsApp2
                         S.size_value AS 'Розмір',
                         R.product_quantity AS 'Кількість',
                         R.reason AS 'Причина',
+                        R.return_destination AS 'Призначення',
                         CONCAT(E.first_name, ' ', E.last_name) AS 'Працівник'
                     FROM
                         `Return` R
@@ -138,7 +141,8 @@ namespace WindowsFormsApp2
                         R.product_quantity as quantity,
                         SD.unit_price,
                         (SD.unit_price * R.product_quantity) as refund_amount,
-                        R.reason
+                        R.reason,
+                        R.return_destination
                     FROM
                         `Return` R
                     JOIN Sale_Details SD ON R.sale_detail_id = SD.sale_detail_id
@@ -211,7 +215,7 @@ namespace WindowsFormsApp2
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка завантаження деталей продажу: {ex.Message}", "Помилка",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                 MessageBoxButtons.OK, MessageBoxIcon.Error);
                 DbConection.CloseDB();
             }
 
@@ -245,13 +249,13 @@ namespace WindowsFormsApp2
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка додавання повернення: {ex.Message}", "Помилка",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                 MessageBoxButtons.OK, MessageBoxIcon.Error);
                 DbConection.CloseDB();
                 return false;
             }
         }
 
-        public bool ProcessReturn(int saleDetailId, int employeeId, int colorSizeId, int quantity, string reason)
+        public bool ProcessReturn(int saleDetailId, int employeeId, int colorSizeId, int quantity, string reason, bool updateStock, string returnDestination)
         {
             bool success = false;
             MySqlTransaction transaction = null;
@@ -264,8 +268,8 @@ namespace WindowsFormsApp2
                 DbConection.msCommand.Transaction = transaction;
 
                 string insertQuery = @"
-                    INSERT INTO `Return` (sale_detail_id, employee_id, return_date, product_quantity, reason)
-                    VALUES (@saleDetailId, @employeeId, NOW(), @quantity, @reason);";
+                    INSERT INTO `Return` (sale_detail_id, employee_id, return_date, product_quantity, reason, return_destination)
+                    VALUES (@saleDetailId, @employeeId, NOW(), @quantity, @reason, @returnDestination);";
 
                 DbConection.msCommand.CommandText = insertQuery;
                 DbConection.msCommand.Parameters.Clear();
@@ -273,18 +277,22 @@ namespace WindowsFormsApp2
                 DbConection.msCommand.Parameters.AddWithValue("@employeeId", employeeId);
                 DbConection.msCommand.Parameters.AddWithValue("@quantity", quantity);
                 DbConection.msCommand.Parameters.AddWithValue("@reason", reason);
+                DbConection.msCommand.Parameters.AddWithValue("@returnDestination", returnDestination);
                 DbConection.msCommand.ExecuteNonQuery();
 
-                string updateStockQuery = @"
-                    UPDATE Color_Size
-                    SET stock_quantity = stock_quantity + @quantity
-                    WHERE color_size_id = @colorSizeId;";
+                if (updateStock)
+                {
+                    string updateStockQuery = @"
+                        UPDATE Color_Size
+                        SET stock_quantity = stock_quantity + @quantity
+                        WHERE color_size_id = @colorSizeId;";
 
-                DbConection.msCommand.CommandText = updateStockQuery;
-                DbConection.msCommand.Parameters.Clear();
-                DbConection.msCommand.Parameters.AddWithValue("@quantity", quantity);
-                DbConection.msCommand.Parameters.AddWithValue("@colorSizeId", colorSizeId);
-                DbConection.msCommand.ExecuteNonQuery();
+                    DbConection.msCommand.CommandText = updateStockQuery;
+                    DbConection.msCommand.Parameters.Clear();
+                    DbConection.msCommand.Parameters.AddWithValue("@quantity", quantity);
+                    DbConection.msCommand.Parameters.AddWithValue("@colorSizeId", colorSizeId);
+                    DbConection.msCommand.ExecuteNonQuery();
+                }
 
                 transaction.Commit();
                 success = true;

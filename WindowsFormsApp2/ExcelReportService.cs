@@ -187,17 +187,17 @@ namespace WindowsFormsApp2
                 // Заголовок звіту
                 SetValue("A1", "ЗВІТ ПО ПРОДАЖАМ", true);
                 SetCellStyle("A1", true, 16, "Black", "LightPink");
-                MergeCells("A1:H1");
+                MergeCells("A1:I1");
 
                 SetValue("A2", $"Період: {startDate:dd.MM.yyyy} - {endDate:dd.MM.yyyy}");
-                MergeCells("A2:H2");
+                MergeCells("A2:I2");
 
                 SetValue("A3", $"Дата формування: {DateTime.Now:dd.MM.yyyy HH:mm}");
-                MergeCells("A3:H3");
+                MergeCells("A3:I3");
 
                 // Заголовки таблиці
                 int headerRow = 5;
-                SetValue($"A{headerRow}", "№ Чека", true);
+                SetValue($"A{headerRow}", "Чек", true);
                 SetValue($"B{headerRow}", "Дата та час", true);
                 SetValue($"C{headerRow}", "Клієнт", true);
                 SetValue($"D{headerRow}", "Товар", true);
@@ -258,6 +258,24 @@ namespace WindowsFormsApp2
 
                 // Автоширина колонок
                 AutoFitColumns("A:I");
+                try
+                {
+                    // A: Чек (короткий числовий ідентифікатор)
+                    excelWorksheet.Columns["A"].ColumnWidth = 10;
+                    // B: Дата/Час (зазвичай фіксована довжина)
+                    excelWorksheet.Columns["B"].ColumnWidth = 18;
+                    // G: Кількість
+                    excelWorksheet.Columns["G"].ColumnWidth = 12;
+                    // H: Ціна за од.
+                    excelWorksheet.Columns["H"].ColumnWidth = 12;
+                    // I: Сума
+                    excelWorksheet.Columns["I"].ColumnWidth = 15;
+                }
+                catch (Exception ex)
+                {
+                    // Це дозволяє згенерувати звіт, навіть якщо не вдалося встановити ширину
+                    Console.WriteLine($"Помилка ручного налаштування ширини: {ex.Message}");
+                }
 
                 SaveAndClose();
 
@@ -272,7 +290,7 @@ namespace WindowsFormsApp2
         }
 
         public void GenerateReturnsReport(DataTable returnsData, string fileName,
-            DateTime startDate, DateTime endDate)
+    DateTime startDate, DateTime endDate)
         {
             try
             {
@@ -281,13 +299,13 @@ namespace WindowsFormsApp2
                 // Заголовок
                 SetValue("A1", "ЗВІТ ПО ПОВЕРНЕННЯХ", true);
                 SetCellStyle("A1", true, 16, "Black", "LightPink");
-                MergeCells("A1:F1");
+                MergeCells("A1:G1");  // Змінено з F1 на G1
 
                 SetValue("A2", $"Період: {startDate:dd.MM.yyyy} - {endDate:dd.MM.yyyy}");
-                MergeCells("A2:F2");
+                MergeCells("A2:G2");  // Змінено з F2 на G2
 
                 SetValue("A3", $"Дата формування: {DateTime.Now:dd.MM.yyyy HH:mm}");
-                MergeCells("A3:F3");
+                MergeCells("A3:G3");  // Змінено з F3 на G3
 
                 // Заголовки
                 int headerRow = 5;
@@ -296,10 +314,11 @@ namespace WindowsFormsApp2
                 SetValue($"C{headerRow}", "Товар", true);
                 SetValue($"D{headerRow}", "Кількість", true);
                 SetValue($"E{headerRow}", "Сума повернення", true);
-                SetValue($"F{headerRow}", "Причина", true);
+                SetValue($"F{headerRow}", "Призначення", true);  // Нова колонка
+                SetValue($"G{headerRow}", "Причина", true);      // Змінено з F на G
 
-                SetCellStyle($"A{headerRow}:F{headerRow}", true, 11, "Black", "Pink");
-                SetBorders($"A{headerRow}:F{headerRow}");
+                SetCellStyle($"A{headerRow}:G{headerRow}", true, 11, "Black", "Pink");  // Змінено з F на G
+                SetBorders($"A{headerRow}:G{headerRow}");  // Змінено з F на G
 
                 // Дані
                 int row = headerRow + 1;
@@ -314,20 +333,21 @@ namespace WindowsFormsApp2
 
                     decimal refund = Convert.ToDecimal(dataRow["refund_amount"]);
                     SetValue($"E{row}", refund);
-                    SetValue($"F{row}", dataRow["reason"]);
+                    SetValue($"F{row}", dataRow["return_destination"]);  // Нова колонка
+                    SetValue($"G{row}", dataRow["reason"]);              // Змінено з F на G
 
                     totalRefund += refund;
-                    SetBorders($"A{row}:F{row}");
+                    SetBorders($"A{row}:G{row}");  // Змінено з F на G
                     row++;
                 }
 
                 // Підсумок
                 row++;
-                SetValue($"D{row}", "ВСЬОГО ПОВЕРНЕНЬ:", true);
-                SetValue($"E{row}", totalRefund, true);
-                SetCellStyle($"D{row}:E{row}", true, 12, "Black", "LightYellow");
+                SetValue($"E{row}", "ВСЬОГО ПОВЕРНЕНЬ:", true);  // Змінено з D на E
+                SetValue($"F{row}", totalRefund, true);          // Змінено з E на F
+                SetCellStyle($"E{row}:F{row}", true, 12, "Black", "LightYellow");  // Змінено з D:E на E:F
 
-                AutoFitColumns("A:F");
+                AutoFitColumns("A:G");  // Змінено з F на G
                 SaveAndClose();
 
                 MessageBox.Show($"Звіт успішно збережено:\n{fileName}", "Успіх",
