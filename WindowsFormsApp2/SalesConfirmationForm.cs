@@ -7,6 +7,8 @@ using System.Linq;
 using System.Windows.Forms;
 using MySql.Data.MySqlClient;
 using System.Globalization;
+using System.Diagnostics;
+using System.Threading;
 
 namespace WindowsFormsApp2
 {
@@ -21,7 +23,6 @@ namespace WindowsFormsApp2
         private PrintDocument printDocument1;
         private PrintDialog printDialog1;
 
-        // Поле для зберігання ID продажу (номера чека)
         private long _currentSaleId;
 
         public SalesConfirmationForm(Customer selectedCustomer)
@@ -30,7 +31,6 @@ namespace WindowsFormsApp2
             this.MinimumSize = new Size(900, 500);
             this.MaximumSize = new Size(1800, 960);
 
-            // Якщо клієнт не обраний, створюємо об'єкт "Без Клієнта"
             _customer = selectedCustomer ?? new Customer { CustomerId = 0, FirstName = "Без", LastName = "Клієнта", DiscountPercent = 0 };
 
             _items = BasketManager.GetItems() ?? new List<BasketItem>();
@@ -41,6 +41,7 @@ namespace WindowsFormsApp2
             {
                 _discountAmount = _totalAmount * (decimal)_customer.DiscountPercent / 100m;
             }
+
             _finalAmount = _totalAmount - _discountAmount;
 
             InitializePrintComponents();
@@ -161,17 +162,14 @@ namespace WindowsFormsApp2
                 DbConection.msCommand.Parameters.AddWithValue("@finalAmount", _finalAmount);
                 DbConection.msCommand.Parameters.AddWithValue("@employeeId", SessionManager.CurrentEmployeeId);
 
-                // Отримуємо ID продажу (номер чека)
                 long saleId = Convert.ToInt64(DbConection.msCommand.ExecuteScalar());
-                _currentSaleId = saleId; 
+                _currentSaleId = saleId;
 
-                // Вставка деталей продажу та оновлення залишків
                 string itemQuery = "INSERT INTO Sale_Details (sale_id, color_size_id, product_quantity, unit_price) VALUES (@saleId, @csId, @qty, @price);";
                 string stockQuery = "UPDATE Color_Size SET stock_quantity = stock_quantity - @qty WHERE color_size_id = @csId;";
 
                 foreach (var item in _items)
                 {
-                    // Вставка деталей
                     DbConection.msCommand.CommandText = itemQuery;
                     DbConection.msCommand.Parameters.Clear();
                     DbConection.msCommand.Parameters.AddWithValue("@saleId", saleId);
@@ -180,7 +178,6 @@ namespace WindowsFormsApp2
                     DbConection.msCommand.Parameters.AddWithValue("@price", item.Price);
                     DbConection.msCommand.ExecuteNonQuery();
 
-                    // Оновлення залишку
                     DbConection.msCommand.CommandText = stockQuery;
                     DbConection.msCommand.Parameters.Clear();
                     DbConection.msCommand.Parameters.AddWithValue("@qty", item.Quantity);
@@ -201,7 +198,24 @@ namespace WindowsFormsApp2
             }
         }
 
-        // Друк чека
+        private string SaveReceiptToPdf()
+        {
+            SaveFileDialog saveDialog = new SaveFileDialog();
+            saveDialog.Filter = "PDF файл (*.pdf)|*.pdf";
+            saveDialog.FileName = $"Чек_{_currentSaleId}.pdf";
+
+            if (saveDialog.ShowDialog() == DialogResult.OK)
+            {
+                printDocument1.PrinterSettings.PrinterName = "Microsoft Print to PDF";
+                printDocument1.PrinterSettings.PrintToFile = true;
+                printDocument1.PrinterSettings.PrintFileName = saveDialog.FileName;
+                printDocument1.Print();
+
+                return saveDialog.FileName;
+            }
+
+            return null;
+        }
 
         private void PrintReceipt()
         {
@@ -226,10 +240,10 @@ namespace WindowsFormsApp2
 
             string employeeName = $"{SessionManager.CurrentEmployeeFirstName} {SessionManager.CurrentEmployeeLastName}";
             string customerName = _customer.CustomerId != 0 ? $"{_customer.FirstName} {_customer.LastName}" : "Не зареєстрований";
- 
+
             g.DrawString($"Чек №{_currentSaleId}", headerFont, Brushes.Black, xMargin, yPos);
             yPos += lineSpacing * 2;
- 
+
             g.DrawString($"Дата: {DateTime.Now:yyyy-MM-dd HH:mm}", regularFont, Brushes.Black, xMargin, yPos);
             yPos += lineSpacing;
             g.DrawString($"Клієнт: {customerName}", regularFont, Brushes.Black, xMargin, yPos);
@@ -237,41 +251,37 @@ namespace WindowsFormsApp2
             g.DrawString($"Продавець: {employeeName}", regularFont, Brushes.Black, xMargin, yPos);
             yPos += lineSpacing * 2;
 
-            float nameColWidth = 90;  
-            float colorColWidth = 80; 
-            float sizeColWidth = 60;  
+            float nameColWidth = 90;
+            float colorColWidth = 80;
+            float sizeColWidth = 60;
             float qtyColWidth = 50;
             float priceColWidth = 80;
-            float totalColWidth = 100; 
+            float totalColWidth = 100;
 
             float xName = xMargin;
-            float xColor = xName + nameColWidth;     
-            float xSize = xColor + colorColWidth + 5; 
+            float xColor = xName + nameColWidth;
+            float xSize = xColor + colorColWidth + 5;
             float xQty = xSize + sizeColWidth;
-            float xPrice = xQty + qtyColWidth + 5;   
-            float xTotal = xPrice + priceColWidth + 5; 
+            float xPrice = xQty + qtyColWidth + 5;
+            float xTotal = xPrice + priceColWidth + 5;
 
             StringFormat centerAlign = new StringFormat { Alignment = StringAlignment.Center };
             StringFormat rightAlign = new StringFormat { Alignment = StringAlignment.Far };
 
-            // Лінія-розділювач
             g.DrawString(new string('-', 150), regularFont, Brushes.Black, xMargin, yPos);
             yPos += lineSpacing;
 
-            // Заголовки стовпців
             g.DrawString("Назва", boldFont, Brushes.Black, xName, yPos);
             g.DrawString("Колір", boldFont, Brushes.Black, new RectangleF(xColor, yPos, colorColWidth, fontHeight), centerAlign);
-            g.DrawString("Розмір", boldFont, Brushes.Black, new RectangleF(xSize, yPos, sizeColWidth, fontHeight), centerAlign); // Тепер поміститься
+            g.DrawString("Розмір", boldFont, Brushes.Black, new RectangleF(xSize, yPos, sizeColWidth, fontHeight), centerAlign);
             g.DrawString("К-сть", boldFont, Brushes.Black, new RectangleF(xQty, yPos, qtyColWidth, fontHeight), centerAlign);
             g.DrawString("Ціна (грн)", boldFont, Brushes.Black, new RectangleF(xPrice, yPos, priceColWidth, fontHeight), rightAlign);
             g.DrawString("Сума (грн)", boldFont, Brushes.Black, new RectangleF(xTotal, yPos, totalColWidth, fontHeight), rightAlign);
             yPos += lineSpacing;
 
-            // Лінія-розділювач
             g.DrawString(new string('-', 150), regularFont, Brushes.Black, xMargin, yPos);
             yPos += lineSpacing;
 
-            // Рядки товарів
             foreach (var item in _items)
             {
                 string name = item.Name.Length > 12 ? item.Name.Substring(0, 12) + "..." : item.Name;
@@ -289,7 +299,7 @@ namespace WindowsFormsApp2
 
                 yPos += lineSpacing;
             }
- 
+
             yPos += lineSpacing;
             g.DrawString(new string('-', 150), regularFont, Brushes.Black, xMargin, yPos);
             yPos += lineSpacing;
@@ -318,8 +328,7 @@ namespace WindowsFormsApp2
             e.HasMorePages = false;
         }
 
-
-        private void button1_Click(object sender, EventArgs e) 
+        private void button1_Click(object sender, EventArgs e)
         {
             if (_items == null || _items.Count == 0)
             {
@@ -329,22 +338,56 @@ namespace WindowsFormsApp2
 
             if (PerformSaleTransaction())
             {
-                PrintReceipt();
+                string filePath = SaveReceiptToPdf();
+
+                if (!string.IsNullOrEmpty(filePath))
+                {
+                    DialogResult result = CustomConfirmDialog.Show(
+                        "Чек успішно створено! Бажаєте переглянути?",
+                        "Успіх"
+                    );
+
+                    if (result == DialogResult.Yes)
+                    {
+                        try
+                        {
+                            Thread.Sleep(300);
+
+                            var startInfo = new ProcessStartInfo
+                            {
+                                FileName = filePath,
+                                UseShellExecute = true
+                            };
+                            Process.Start(startInfo);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(
+                                $"Файл збережено, але не вдалося його відкрити: {ex.Message}\n\nВи можете знайти файл за шляхом:\n{filePath}",
+                                "Інформація",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Information
+                            );
+                        }
+                    }
+                }
+
                 BasketManager.ClearBasket();
                 this.DialogResult = DialogResult.OK;
             }
         }
 
-        private void button2_Click(object sender, EventArgs e) // Кнопка "Повернутися" 
+        private void button2_Click(object sender, EventArgs e) // Кнопка "Повернутися"
         {
             this.DialogResult = DialogResult.Cancel;
         }
+
         private void close_Click(object sender, EventArgs e) { Application.Exit(); }
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
         private void label1_Click(object sender, EventArgs e) { }
         private void label2_Click(object sender, EventArgs e) { }
         private void label5_Click(object sender, EventArgs e) { }
-
         private void panel2_Paint(object sender, PaintEventArgs e) { }
     }
 }
+
