@@ -17,7 +17,7 @@ mysql -u root -p < БД.sql
 2. Налаштування підключення:
 Відкрити DbConection.cs та змінити параметри:
 csharpprivate static string DbConnect = "server=localhost;user=root;password=[ваш_пароль];database=shoestore";
-```
+
 
 3. Необхідні NuGet пакети:
 - `MySql.Data` - підключення до MySQL
